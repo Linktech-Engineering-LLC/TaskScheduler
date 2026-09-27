@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PROJECT_DIR="$HOME/projects/Python/TimerDeck"
+PROJECT_DIR="$HOME/projects/Python/TaskScheduler"
 VENV_DIR="$HOME/.venv"
 
 # Activate venv
@@ -11,4 +11,4 @@ source "$VENV_DIR/bin/activate"
 cd "$PROJECT_DIR"
 
 # Launch TimerDeck
-exec python -m TimerDeck
+exec python -m TaskScheduler

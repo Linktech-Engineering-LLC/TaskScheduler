@@ -1,4 +1,4 @@
-# TimerDeck — Architectural Overview
+# TaskScheduler — Architectural Overview
 Deterministic, operator‑grade scheduling and environment management utilities for Linux (systemd + cron).
 
 **Suite:** Linktech Engineering Tools Suite  
@@ -21,10 +21,10 @@ Deterministic, operator‑grade scheduling and environment management utilities 
 ---
 
 ## 1. Purpose
-This document defines the architectural structure of **TimerDeck**, including its UI footprint, subsystem boundaries, data‑flow model, and orchestration patterns.
+This document defines the architectural structure of **TaskScheduler**, including its UI footprint, subsystem boundaries, data‑flow model, and orchestration patterns.
 It serves as the authoritative reference for contributors, maintainers, and future development phases.
 
-TimerDeck’s architecture is built around:
+TaskScheduler’s architecture is built around:
 * deterministic behavior
 * strict separation of concerns
 * predictable UI/UX
@@ -34,7 +34,7 @@ TimerDeck’s architecture is built around:
 ---
 
 ## 2. High‑Level Architecture
-TimerDeck is composed of three primary layers:
+TaskScheduler is composed of three primary layers:
 1. UI Layer
 2. Manager Layer
 3. Orchestrator Layer
@@ -45,7 +45,7 @@ Each layer has strict responsibilities and must not leak logic into adjacent lay
 +---------------------------+
 |        MainWindow         |  ← Orchestrator
 +---------------------------+
-| Sidebar | Toolbar | Views |  ← UI Layer
+| Sidebar | Menus | Views |  ← UI Layer
 +---------------------------+
 | CronManager | SystemdManager | EnvManager |  ← Manager Layer
 +---------------------------+
@@ -69,6 +69,7 @@ Responsibilities:
 * Launch editor windows
 * Refresh dashboard
 * Coordinate managers
+* Enforce deterministic refresh cycles
 
 Must not:
 * parse cron/systemd/env data
@@ -76,29 +77,49 @@ Must not:
 * call systemctl or crontab
 * contain business logic
 
-### 3.2 Sidebar
-Sidebar provides navigation only:
+### 3.2 Menu System (Tasks / View / File / Help)
+TaskScheduler uses a **menu‑driven navigation model**, replacing the old sidebar navigation.
+
+#### Tasks Menu
+* Systemd Tasks
+* Cron Jobs
+* Environment Variables
+
+#### View Menu
 * Dashboard
-* Hosts (future)
-* Users (future)
-* Settings (future)
+* Logs
+
+#### File Menu
+* Settings
+* Reload All
+* Exit
+
+#### Help Menu
+* About
+* Documentation
+
+Menus are the **primary navigation mechanism**.
+
+### 3.3 Sidebar (Context Selector)
+The sidebar is no longer a navigation panel.
+It is a **context selector**, controlling:
+* Scope (User / System)
+* User selection (User scope only)
+* Password entry
+    * required for system scope
+    * required for user mismatch
+* Remote mode (Local / Remote)
+* Host selection (Remote only)
+
+The sidebar uses **frame‑based visibility**, ensuring deterministic layout:
+* User frame
+* Password frame
+* Host frame
 
 Sidebar must not:
 * perform system operations
 * modify data
 * contain parsing logic
-
-### 3.3 Toolbar (System Selector)
-The toolbar defines the **active editing system**:
-* Cron
-* Systemd
-* Environment
-
-This selection determines:
-* which editor window opens
-* which manager receives save/delete operations
-* which system receives migrated entries
-* Toolbar must remain lightweight and global.
 
 ### 3.4 Dashboard
 Dashboard is a **summary view** only.
@@ -115,7 +136,19 @@ Must not:
 * perform system operations
 * contain parsing logic
 
-### 3.5 Editor Windows
+### 3.5 Logs View
+The Logs view provides:
+* structured log display
+* future filtering/search
+* future export capabilities
+* integration with systemd journal
+
+Must not:
+* modify logs
+* perform system operations
+* contain parsing logic
+
+### 3.6 Editor Windows
 Each system has its own editor window:
 * CronEditWindow
 * SystemdEditWindow
@@ -218,7 +251,7 @@ EditorWindow.move_to(target_system)
 ---
 
 ## 7. Comment Model
-TimerDeck supports comments for both cron and systemd.
+TaskScheduler supports comments for both cron and systemd.
 
 ### 7.1 Cron Comments
 Supported:
@@ -251,7 +284,7 @@ Planned architectural extensions:
 ---
 
 ## 9. Architectural Guarantees
-TimerDeck guarantees:
+TaskScheduler guarantees:
 * deterministic behavior
 * reproducible parsing
 * strict separation of concerns

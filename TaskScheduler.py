@@ -16,7 +16,7 @@ Modified: 2026-09-25
 import sys
 from PySide6.QtWidgets import QApplication
 
-from timerdeck import MainWindow
+from taskscheduler import MainWindow
 
 def main():
     app = QApplication(sys.argv)

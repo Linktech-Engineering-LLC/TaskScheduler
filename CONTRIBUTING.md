@@ -1,4 +1,4 @@
-# TimerDeck — Contribution Guidelines
+# TaskScheduler — Contribution Guidelines
 Deterministic, operator‑grade scheduling and environment management utilities for Linux (systemd + cron).
 
 **Suite:** Linktech Engineering Tools Suite  
@@ -21,7 +21,7 @@ Deterministic, operator‑grade scheduling and environment management utilities 
 ---
 
 ## 1. Overview
-Thank you for your interest in contributing to **TimerDeck**.
+Thank you for your interest in contributing to **TaskScheduler**.
 This project is part of the Linktech Engineering Tools Suite and follows strict standards for determinism, clarity, and operator‑grade reliability.
 
 Contributions should align with:
@@ -31,7 +31,7 @@ Contributions should align with:
 * predictable UI/UX patterns
 * clean separation between UI, managers, and orchestrator logic
 
-TimerDeck is currently in **Phase 2**, and contributions should respect the architectural direction defined in the README.
+TaskScheduler is currently in **Phase 2**, and contributions should respect the architectural direction defined in the README.
 
 ---
 
@@ -80,7 +80,7 @@ Before submitting:
 
 ## 4. Development Standards
 ### 4.1 Python Style
-TimerDeck follows:
+TaskScheduler follows:
 * PEP 8
 * deterministic imports
 * explicit typing
@@ -119,7 +119,7 @@ It must not contain:
 ---
 
 ## 5. Testing
-TimerDeck uses:
+TaskScheduler uses:
 * pytest
 * deterministic test fixtures
 * isolated environment mocks
@@ -139,8 +139,8 @@ Contributors should update:
 * [README.md](README.md)
 * CONTRIBUTING.md
 * [Architecture.md](docs/Architecture.md) (if structural changes occur)
-* docs/systemd-parsing.md (if systemd parsing changes)
-* docs/cron-parsing.md (if cron parsing changes)
+* docs/core/systemd.md (if systemd parsing changes)
+* docs/cron.md (if cron parsing changes)
 
 Documentation must remain:
 * clear
@@ -151,7 +151,7 @@ Documentation must remain:
 ---
 
 ## 7. Roadmap Alignment
-All contributions must align with the TimerDeck roadmap:
+All contributions must align with the TaskScheduler roadmap:
 * Phase 2: Data Integration
 * Phase 3: Interaction & Management
 * Phase 4: Advanced Features
