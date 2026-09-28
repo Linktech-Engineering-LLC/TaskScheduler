@@ -14,16 +14,14 @@ Modified: 2026-09-25
 
 
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget,
-    QVBoxLayout, QPushButton, QSplitter,
-    QStackedWidget, QLabel, QToolBar,
-    QMessageBox, QGridLayout, QFrame,
-    QRadioButton, QButtonGroup, QHBoxLayout,
-    QComboBox, QDockWidget, QSizePolicy
+    QMainWindow, QWidget, QSplitter,
+    QStackedWidget, QLabel, QMessageBox, 
+    QDockWidget
 )
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction
 
+from .cron_editor import CronJobEditor
 from .logic import (
     CronManager,
     EnvManager,
@@ -58,6 +56,7 @@ class MainWindow(QMainWindow):
         self.active_user = self.user_manager.get_users()[0] if self.user_manager.get_users() else ""
         self.remote_mode = False
         self.active_host = ""
+        self.active_view = "dashboard"
 
         # --- Window Setup ---
         self.setWindowTitle("TimerDeck")
@@ -96,6 +95,7 @@ class MainWindow(QMainWindow):
             users=self.user_manager.get_users(),
             hosts=self.host_manager.get_hosts()
         )
+        self.sidebar.controls_frame.hide()
 
         dock = QDockWidget("Sidebar", self)
         dock.setWidget(self.sidebar)
@@ -121,6 +121,10 @@ class MainWindow(QMainWindow):
 
         splitter.addWidget(self.stack)
         self.setCentralWidget(splitter)
+
+        self.VIEW_DASHBOARD = 0
+        self.VIEW_SYSTEMD = 1
+        self.VIEW_CRON = 2
 
     # ============================================================
     # Actions
@@ -190,17 +194,40 @@ class MainWindow(QMainWindow):
         # Help
         self.act_about.triggered.connect(self.show_about_dialog)
         self.act_docs.triggered.connect(self.open_docs_page)
+        
+        # Row Signals
+        self.cron_table.itemDoubleClicked.connect(self.on_cron_row_double_clicked)
+        self.sidebar.newRequested.connect(self.on_new_requested)
+        self.sidebar.editRequested.connect(self.on_edit_requested)
+        self.sidebar.deleteRequested.connect(self.on_delete_requested)
+        self.sidebar.refreshRequested.connect(self.on_refresh_requested)
 
     # ============================================================
     # View Switching
     # ============================================================
     def show_view(self, view: str):
+        self.active_view = view
+
+        # Sidebar button visibility logic
         if view == "dashboard":
-            self.stack.setCurrentIndex(0)
-        elif view == "systemd":
-            self.stack.setCurrentIndex(1)
-        elif view == "cron":
-            self.show_cron()
+            self.sidebar.set_actions_visible(False)
+        else:
+            self.sidebar.set_actions_visible(True)
+        
+        match view:
+            case "dashboard":
+                self.stack.setCurrentIndex(self.VIEW_DASHBOARD)
+
+            case "systemd":
+                self.stack.setCurrentIndex(self.VIEW_SYSTEMD)
+
+            case "cron":
+                self.stack.setCurrentIndex(self.VIEW_CRON)
+                self.show_cron()
+
+            case _:
+                # Optional: fallback
+                self.stack.setCurrentIndex(0)
 
     # ============================================================
     # Sidebar Callbacks
@@ -237,7 +264,7 @@ class MainWindow(QMainWindow):
     # Cron View
     # ============================================================
     def show_cron(self):
-        scope = self.systemd_manager.active_scope
+        scope = self.active_scope
 
         if scope == "user":
             rows = self.cron_manager.load_user_cron(self.active_user)
@@ -294,3 +321,75 @@ class MainWindow(QMainWindow):
             self.act_view_systemd.setIcon(self.icon_systemd_system)      
         self.systemd_manager.set_scope(scope)
         self.statusBar().showMessage(f"Scope changed to: {scope.capitalize()}")
+    
+    def new_cron_job(self):
+        dlg = CronJobEditor(self)
+        if dlg.exec():
+            entry = dlg.get_cron_entry()
+            self.add_entry_to_table(entry)
+            self.write_crontab()
+    def edit_cron_job(self):
+        row = self.cron_table.currentRow()
+        if row < 0:
+            return
+
+        entry = self.get_entry_from_row(row)
+
+        dlg = CronJobEditor(self)
+        dlg.set_cron_entry(entry)
+
+        if dlg.exec():
+            updated = dlg.get_cron_entry()
+            self.update_row(row, updated)
+            self.write_crontab()
+    def on_cron_row_double_clicked(self, item):
+        row = item.row()
+        self.edit_cron_job()
+    def on_new_requested(self):
+        if self.active_view == "cron":
+            self.new_cron_job()
+        elif self.active_view == "systemd":
+            self.new_systemd_task()
+        elif self.active_view == "env":
+            self.new_env_var()
+
+    def on_edit_requested(self):
+        if self.active_view == "cron":
+            self.edit_cron_job()
+        elif self.active_view == "systemd":
+            self.edit_systemd_task()
+        elif self.active_view == "env":
+            self.edit_env_var()
+    def on_delete_requested(self):
+        if self.active_view == "cron":
+            self.delete_cron_job()
+        elif self.active_view == "systemd":
+            self.delete_systemd_task()
+        elif self.active_view == "env":
+            self.delete_env_var()
+    def delete_cron_job(self):
+        print("Delete cron job requested")
+
+    def delete_systemd_task(self):
+        print("Delete systemd task requested")
+
+    def delete_env_var(self):
+        print("Delete environment variable requested")
+    def on_refresh_requested(self):
+        match self.active_view:
+            case "cron":
+                self.refresh_cron_jobs()
+            case "systemd":
+                self.refresh_systemd_tasks()
+            case "env":
+                self.refresh_env_vars()
+            case _:
+                pass
+    def refresh_cron_jobs(self):
+        print("Refreshing cron jobs")
+
+    def refresh_systemd_tasks(self):
+        print("Refreshing systemd tasks")
+
+    def refresh_env_vars(self):
+        print("Refreshing environment variables")

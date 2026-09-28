@@ -16,8 +16,8 @@ import getpass
 from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QRadioButton, QComboBox,
-    QLabel, QFrame, QHBoxLayout, QButtonGroup,
-    QLineEdit, QCheckBox
+    QLabel, QFrame, QVBoxLayout, QButtonGroup,
+    QLineEdit, QCheckBox, QHBoxLayout
 )
 from PySide6.QtCore import Signal
 
@@ -30,6 +30,10 @@ class SidebarWidget(QWidget):
     remoteModeChanged = Signal(bool)
     hostChanged = Signal(str)
     passwordModeChanged = Signal(bool)
+    newRequested = Signal()
+    editRequested = Signal()
+    deleteRequested = Signal()
+    refreshRequested = Signal()
 
     def __init__(self, users: list[str], hosts: list[str]):
         super().__init__()
@@ -137,6 +141,25 @@ class SidebarWidget(QWidget):
 
         layout.addWidget(self.host_frame)
 
+        # =========================================================
+        # Task Controls Frame
+        # =========================================================
+        self.controls_frame = QFrame()
+        controls_layout = QVBoxLayout(self.controls_frame)
+        controls_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.btn_new = QPushButton("New")
+        self.btn_edit = QPushButton("Edit")
+        self.btn_delete = QPushButton("Delete")
+        self.btn_refresh = QPushButton("Refresh")
+
+        controls_layout.addWidget(self.btn_new)
+        controls_layout.addWidget(self.btn_edit)
+        controls_layout.addWidget(self.btn_delete)
+        controls_layout.addWidget(self.btn_refresh)
+
+        layout.addWidget(self.controls_frame)
+
         layout.addStretch()
 
     # ------------------------------------------------------------
@@ -161,6 +184,12 @@ class SidebarWidget(QWidget):
 
         # Password toggle
         self.password_toggle.toggled.connect(self.passwordModeChanged.emit)
+
+        # Control Buttons
+        self.btn_new.clicked.connect(self.newRequested.emit)
+        self.btn_edit.clicked.connect(self.editRequested.emit)
+        self.btn_delete.clicked.connect(self.deleteRequested.emit)
+        self.btn_refresh.clicked.connect(self.refreshRequested.emit)
 
     # ------------------------------------------------------------
     # Visibility Logic
@@ -194,3 +223,6 @@ class SidebarWidget(QWidget):
         remote = self.rb_remote.isChecked()
         self.remoteModeChanged.emit(remote)
         self.update_visibility()
+    # In Sidebar class
+    def set_actions_visible(self, visible: bool):
+        self.controls_frame.setVisible(visible)

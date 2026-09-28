@@ -12,18 +12,23 @@ Modified: 2026-09-25
  Description: Description of this module
 """
 
-from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QAbstractItemView
-
+from PySide6.QtWidgets import (
+    QTableWidget, QTableWidgetItem, QAbstractItemView,
+    QHeaderView
+)
 class CronTableWidget(QTableWidget):
     def __init__(self):
         super().__init__()
-        self.setColumnCount(2)
-        self.setHorizontalHeaderLabels(["Scheduling", "Command"])
+        self.setColumnCount(4)
+        self.setHorizontalHeaderLabels(["Schedule", "Command", "Status", "Comment"])
         self.horizontalHeader().setStretchLastSection(True)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
     def populate(self, rows):
         self.setRowCount(len(rows))
-        for i, (schedule, command) in enumerate(rows):
-            self.setItem(i, 0, QTableWidgetItem(schedule))
-            self.setItem(i, 1, QTableWidgetItem(command))
+        for i, t in enumerate(rows):
+            self.setItem(i, 0, QTableWidgetItem(t.get("schedule", "")))
+            self.setItem(i, 1, QTableWidgetItem(t.get("command", "")))
+            self.setItem(i, 2, QTableWidgetItem(t.get("status", "")))
+            self.setItem(i, 3, QTableWidgetItem(t.get("comment", "")))
