@@ -2,6 +2,7 @@
 Deterministic, operator‑grade scheduling and environment management utilities for Linux (systemd + cron).
 
 **Suite:** Linktech Engineering Tools Suite  
+**Project:** TaskScheduler
 **Maintainer:** Leon McClatchey, Linktech Engineering LLC  
 **License:** MIT (source) · Proprietary (binaries, if distributed)  
 **Requires:** Python 3.12+  

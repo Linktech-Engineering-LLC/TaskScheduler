@@ -16,7 +16,7 @@ Modified: 2026-09-25
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QSplitter,
     QStackedWidget, QLabel, QMessageBox, 
-    QDockWidget
+    QDockWidget, QTableWidgetItem
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
@@ -43,6 +43,21 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        
+        self.cron_rows = []
+        # --- Icons ---
+        self.icon_dashboard = icon("dashboard.svg")
+        self.icon_systemd_user = icon("systemd-user.svg")
+        self.icon_systemd_system = icon("systemd-system.svg")
+        self.icon_cron = icon("cron.svg")
+        self.icon_env = icon("env.svg")
+        self.icon_logs = icon("logs.svg")  # placeholder for future
+        self.icon_close = icon("exit.svg")
+        self.icon_settings = icon("settings.svg")
+        self.icon_reload = icon("refresh.svg")
+        self.icon_help = icon("help.svg")
+        self.icon_about = icon("about.svg")
+        self.icon_logs = icon("logs.svg")
 
         # --- Managers ---
         self.cron_manager = CronManager()
@@ -80,8 +95,7 @@ class MainWindow(QMainWindow):
     # ============================================================
     def _build_ui(self):
         menubar = self.menuBar()
-
-        # --- Menus ---
+       # --- Top-level menus ---
         self.menu_file = menubar.addMenu("&File")
         self.menu_tasks = menubar.addMenu("&Tasks")
         self.menu_view = menubar.addMenu("&View")
@@ -130,19 +144,6 @@ class MainWindow(QMainWindow):
     # Actions
     # ============================================================
     def _create_actions(self):
-        # --- Icons ---
-        self.icon_dashboard = icon("dashboard.svg")
-        self.icon_systemd_user = icon("systemd-user.svg")
-        self.icon_systemd_system = icon("systemd-system.svg")
-        self.icon_cron = icon("cron.svg")
-        self.icon_env = icon("env.svg")
-        self.icon_logs = icon("logs.svg")  # placeholder for future
-        self.icon_close = icon("exit.svg")
-        self.icon_settings = icon("settings.svg")
-        self.icon_reload = icon("refresh.svg")
-        self.icon_help = icon("help.svg")
-        self.icon_about = icon("about.svg")
-        self.icon_logs = icon("logs.svg")
 
         # --- File ---
         self.act_settings = QAction(self.icon_settings, "Settings", self)
@@ -163,10 +164,16 @@ class MainWindow(QMainWindow):
 
         # --- View ---
         self.act_view_dashboard = QAction(self.icon_dashboard, "Dashboard", self)
-        self.act_view_logs = QAction(self.icon_logs, "Logs", self)
         self.menu_view.addAction(self.act_view_dashboard)
-        self.menu_view.addAction(self.act_view_logs)
+        # 2. Logs submenu SECOND
+        self.menu_logs = self.menu_view.addMenu("Logs")
+        self.action_view_ts_logs = QAction(self.icon_logs, "TaskScheduler Logs", self)
+        self.action_view_cron_logs = QAction(self.icon_logs, "Cron Logs", self)
+        self.action_view_systemd_logs = QAction(self.icon_logs, "Systemd Logs", self)
 
+        self.menu_logs.addAction(self.action_view_ts_logs)
+        self.menu_logs.addAction(self.action_view_cron_logs)
+        self.menu_logs.addAction(self.action_view_systemd_logs)
         # --- Help ---
         self.act_about = QAction(self.icon_about, "About", self)
         self.act_docs = QAction(self.icon_help, "Documentation", self)
@@ -189,7 +196,6 @@ class MainWindow(QMainWindow):
 
         # View
         self.act_view_dashboard.triggered.connect(lambda: self.show_view("dashboard"))
-        self.act_view_logs.triggered.connect(lambda: self.show_view("logs"))
 
         # Help
         self.act_about.triggered.connect(self.show_about_dialog)
@@ -234,8 +240,8 @@ class MainWindow(QMainWindow):
     # ============================================================
     def load_user_cron(self, user: str):
         self.active_user = user
-        rows = self.cron_manager.load_user_cron(user)
-        self.dashboard.set_cron_tasks(rows)
+        self.cron_rows = self.cron_manager.load_user_cron(user)
+        self.dashboard.set_cron_tasks(self.cron_rows)
 
     def set_host(self, host: str):
         self.active_host = host
@@ -251,8 +257,8 @@ class MainWindow(QMainWindow):
         user = self.active_user
         scope = self.active_scope
 
-        cron_rows = self.cron_manager.load_user_cron(user)
-        self.dashboard.set_cron_tasks(cron_rows)
+        self.cron_rows = self.cron_manager.load_user_cron(user)
+        self.dashboard.set_cron_tasks(self.cron_rows)
 
         systemd_rows = self.systemd_manager.load_timers(user, scope)
         self.dashboard.set_systemd_tasks(systemd_rows)
@@ -267,11 +273,11 @@ class MainWindow(QMainWindow):
         scope = self.active_scope
 
         if scope == "user":
-            rows = self.cron_manager.load_user_cron(self.active_user)
+            self.cron_rows = self.cron_manager.load_user_cron(self.active_user)
         else:
-            rows = self.cron_manager.load_system_cron()
+            self.cron_rows = self.cron_manager.load_system_cron()
 
-        self.cron_table.populate(rows)
+        self.cron_table.populate(self.cron_rows)
         self.stack.setCurrentWidget(self.cron_table)
 
     # ============================================================
@@ -291,6 +297,13 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+    def populate(self, rows):
+        self.setRowCount(len(rows))
+        for i, entry in enumerate(rows):
+            self.setItem(i, 0, QTableWidgetItem(entry.schedule_string()))
+            self.setItem(i, 1, QTableWidgetItem(entry.command))
+            self.setItem(i, 2, QTableWidgetItem("enabled" if entry.enabled else "disabled"))
+            self.setItem(i, 3, QTableWidgetItem(entry.comment))
 
     # ============================================================
     # Placeholder Methods for Actions
@@ -321,6 +334,8 @@ class MainWindow(QMainWindow):
             self.act_view_systemd.setIcon(self.icon_systemd_system)      
         self.systemd_manager.set_scope(scope)
         self.statusBar().showMessage(f"Scope changed to: {scope.capitalize()}")
+    def get_entry_from_row(self, row):
+        return self.cron_rows[row]
     
     def new_cron_job(self):
         dlg = CronJobEditor(self)
@@ -334,7 +349,6 @@ class MainWindow(QMainWindow):
             return
 
         entry = self.get_entry_from_row(row)
-
         dlg = CronJobEditor(self)
         dlg.set_cron_entry(entry)
 
@@ -344,6 +358,7 @@ class MainWindow(QMainWindow):
             self.write_crontab()
     def on_cron_row_double_clicked(self, item):
         row = item.row()
+        self.cron_table.selectRow(row)   # ⭐ This is the missing piece
         self.edit_cron_job()
     def on_new_requested(self):
         if self.active_view == "cron":

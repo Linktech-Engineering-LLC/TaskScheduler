@@ -28,7 +28,8 @@ class CronTableWidget(QTableWidget):
     def populate(self, rows):
         self.setRowCount(len(rows))
         for i, t in enumerate(rows):
-            self.setItem(i, 0, QTableWidgetItem(t.get("schedule", "")))
-            self.setItem(i, 1, QTableWidgetItem(t.get("command", "")))
-            self.setItem(i, 2, QTableWidgetItem(t.get("status", "")))
-            self.setItem(i, 3, QTableWidgetItem(t.get("comment", "")))
+            self.setItem(i, 0, QTableWidgetItem(t.schedule_string()))
+            self.setItem(i, 1, QTableWidgetItem(t.command))
+            self.setItem(i, 2, QTableWidgetItem("enabled" if t.enabled else "disabled"))
+            self.setItem(i, 3, QTableWidgetItem(t.comment))
+

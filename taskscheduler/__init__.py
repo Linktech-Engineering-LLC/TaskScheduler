@@ -13,7 +13,11 @@ Modified: 2026-09-25
 """
 
 from .main_window import MainWindow
+from .cron_editor import CronJobEditor
+from .cron_entry import CronEntry
 
 __all__ = [
-    "MainWindow"
+    "MainWindow",
+    "CronJobEditor",
+    "CronEntry"
 ]

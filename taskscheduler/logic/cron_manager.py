@@ -14,6 +14,7 @@ Modified: 2026-09-25
 import getpass
 import subprocess
 
+from ..cron_entry import CronEntry
 from PythonTools.sessions import LocalSession, SSHSession
 
 class CronManager:
@@ -36,56 +37,99 @@ class CronManager:
 
     def _parse_cron(self, output: str):
         lines = [l.rstrip() for l in output.splitlines()]
-
         parsed = []
         pending_comment = ""
 
         for line in lines:
             stripped = line.strip()
-
-            # Skip empty lines
             if not stripped:
                 continue
 
-            # Preceding comment (Kcron style)
-            if stripped.startswith("#"):
-                # Accumulate multi-line comments
-                comment_text = stripped[1:].strip()
-                if pending_comment:
-                    pending_comment += " " + comment_text
-                else:
-                    pending_comment = comment_text
-                continue
-
-            # Inline comment
+            enabled = True
             inline_comment = ""
-            if "#" in stripped:
-                stripped, inline_comment = stripped.split("#", 1)
-                inline_comment = inline_comment.strip()
+            schedule = ""
+            command = ""
 
-            # Parse schedule + command
-            parts = stripped.split(maxsplit=5)
+            # ───────────────────────────────────────────────
+            # 1. Disabled or preceding comment
+            # ───────────────────────────────────────────────
+            if stripped.startswith("#"):
+                enabled = False
+                body = stripped[1:].lstrip()
 
-            if len(parts) >= 6:
-                schedule = " ".join(parts[:5])
-                command = parts[5].strip()
+                # Handle escaped disabled entries (#\0 ...)
+                if body.startswith("\\"):
+                    body = body[1:].lstrip()
+
+                parts = body.split(maxsplit=5)
+
+                # Disabled cron entry
+                if len(parts) >= 6 and parts[0].isdigit():
+                    schedule = " ".join(parts[:5])
+                    command = parts[5].strip()
+                else:
+                    # Preceding comment
+                    pending_comment = (pending_comment + " " + body).strip() if pending_comment else body
+                    continue
+
             else:
-                schedule = stripped
-                command = ""
+                # ───────────────────────────────────────────────
+                # 2. Enabled entry with optional inline comment
+                # ───────────────────────────────────────────────
+                if "#" in stripped:
+                    stripped, inline_comment = stripped.split("#", 1)
+                    inline_comment = inline_comment.strip()
 
-            # Choose comment priority:
-            # 1. Inline comment
-            # 2. Preceding comment
-            comment = inline_comment if inline_comment else pending_comment
+                parts = stripped.split(maxsplit=5)
+                if len(parts) >= 6:
+                    schedule = " ".join(parts[:5])
+                    command = parts[5].strip()
+                else:
+                    schedule = stripped
+                    command = ""
 
-            parsed.append({
-                "schedule": schedule,
-                "command": command,
-                "status": "enabled",
-                "comment": comment
-            })
+            # ───────────────────────────────────────────────
+            # 3. Build CronEntry (single unified path)
+            # ───────────────────────────────────────────────
+            minute, hour, dom, month, dow = schedule.split(maxsplit=4)
+            comment = inline_comment or pending_comment or ""
+            entry = CronEntry(
+                minute=minute,
+                hour=hour,
+                dom=dom,
+                month=month,
+                dow=dow,
+                command=command,
+                comment=comment,
+                enabled=enabled,
+                source="user"
+            )
+            entry.daily = (entry.dom == "*" and entry.month == "*" and entry.dow == "*")
+            entry.boot = stripped.startswith("@reboot")
 
-            # Reset preceding comment after attaching it
+            parsed.append(entry)
             pending_comment = ""
 
         return parsed
+    def parse_schedule(self, schedule: str):
+        """
+        Convert a cron schedule string into a CronEntry object.
+        Example: '*/5 * * * *' → CronEntry(minute='*/5', hour='*', dom='*', month='*', dow='*')
+        """
+
+        parts = schedule.split()
+
+        if len(parts) < 5:
+            raise ValueError(f"Invalid cron schedule: {schedule}")
+
+        minute, hour, dom, month, dow = parts[:5]
+
+        return CronEntry(
+            minute=minute,
+            hour=hour,
+            dom=dom,
+            month=month,
+            dow=dow,
+            command=""  # command will be filled in later
+        )
+        

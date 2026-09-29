@@ -29,7 +29,7 @@ class DashboardWidget(QWidget):
         # --- Cron Tasks ---
         self.cron_table = self._make_table(
             title="Cron Tasks",
-            headers=["Schedule", "Command"]
+            headers=["Schedule", "Command", "Comment"]
         )
         layout.addWidget(self.cron_table)
 
@@ -84,8 +84,9 @@ class DashboardWidget(QWidget):
 
         for row, t in enumerate(tasks):
             table.insertRow(row)
-            table.setItem(row, 0, QTableWidgetItem(t.get("schedule", "")))
-            table.setItem(row, 1, QTableWidgetItem(t.get("command", "")))
+            table.setItem(row, 0, QTableWidgetItem(t.schedule_string()))
+            table.setItem(row, 1, QTableWidgetItem(t.command))
+            table.setItem(row, 2, QTableWidgetItem(t.comment))
 
     # ---------------------------------------------------------
     # Public API: Populate Systemd Tasks

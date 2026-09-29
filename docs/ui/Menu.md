@@ -2,20 +2,21 @@
 Deterministic, operator‑grade scheduling and environment management utilities for Linux (systemd + cron).
  
 **Suite:** Linktech Engineering Tools Suite  
+**Project:** TaskScheduler
 **Maintainer:** Leon McClatchey, Linktech Engineering LLC  
 **License:** MIT (source) · Proprietary (binaries, if distributed)  
 **Requires:** Python 3.12+  
 **Status:** Active Development (Phase 2)  
 
 ## Table of Contents
-1. Overview
-2. Menu Philosophy
-3. File Menu
-4. Tasks Menu
-5. View Menu
-6. Help Menu
-7. Deterministic Behavior
-8. Future Expansion
+1. [Overview](#1-overview)
+2. [Menu Philosophy](#2-menu-philosophy)
+3. [File Menu](#3-file-menu)
+4. [Tasks Menu](#4-tasks-menu)
+5. [View Menu](#5-view-menu)
+6. [Help Menu](#6-help-menu)
+7. [Deterministic Behavior](#7-deterministic-behavior)
+8. [Future Expansion](#8-future-expansion)
 
 ---
 
@@ -121,9 +122,14 @@ Shows the unified dashboard containing:
 Dashboard is read‑only and supports double‑click → editor.
 
 ### View → Logs
-Shows the logs view.
+Opens the Logs submenu.
 
-Logs view is:
+The Logs submenu contains:
+* TaskScheduler Logs
+* Cron Logs
+* Systemd Logs
+
+Each log view is:
 * read‑only
 * scrollable
 * future‑filterable
