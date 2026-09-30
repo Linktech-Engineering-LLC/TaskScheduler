@@ -30,3 +30,4 @@ class CronEntry:
 
     def schedule_string(self):
         return f"{self.minute} {self.hour} {self.dom} {self.month} {self.dow}"
+

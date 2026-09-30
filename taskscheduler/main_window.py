@@ -22,6 +22,11 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
 
 from .cron_editor import CronJobEditor
+from .environment import (
+    EnvironmentController,
+    EnvironmentTableModel,
+    EnvironmentMode
+)
 from .logic import (
     CronManager,
     EnvManager,
@@ -65,6 +70,8 @@ class MainWindow(QMainWindow):
         self.host_manager = HostManager()
         self.user_manager = UserManager()
         self.systemd_manager = SystemdManager()
+        self.env_controller = EnvironmentController()
+        self.env_model = EnvironmentTableModel([])
 
         # --- State ---
         self.active_scope = "user"
@@ -263,8 +270,9 @@ class MainWindow(QMainWindow):
         systemd_rows = self.systemd_manager.load_timers(user, scope)
         self.dashboard.set_systemd_tasks(systemd_rows)
 
-        env_rows = self.env_manager.load_env(user, scope)
-        self.dashboard.set_environment_variables(env_rows)
+        entries = self.env_controller.load_environment(EnvironmentMode.USER)
+        self.env_model.update_entries(entries)
+        self.dashboard.set_environment_model(self.env_model)
 
     # ============================================================
     # Cron View

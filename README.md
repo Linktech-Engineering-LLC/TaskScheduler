@@ -248,7 +248,7 @@ A structured documentation index helps operators, contributors, and maintainers 
   Icon system, stroke rules, design invariants, and naming conventions.
 
 ### Core Architecture
-* [Systemd.md](docs/core/systemd.md)
+* [Systemd.md](docs/core/Systemd.md)
   Timer enumeration, unit linkage, next/last run parsing, comment extraction.
 * [Cron.md](docs/core/Cron.md)
   Cron parsing rules, inline comments, preceding comments, multi‑line accumulation.

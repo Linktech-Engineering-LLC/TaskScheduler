@@ -14,7 +14,8 @@ Modified: 2026-09-25
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QGroupBox, QTableWidget,
-    QTableWidgetItem, QHeaderView, QScrollArea
+    QTableWidgetItem, QHeaderView, QScrollArea,
+    QTableView
 )
 from PySide6.QtCore import Qt
 
@@ -41,10 +42,7 @@ class DashboardWidget(QWidget):
         layout.addWidget(self.systemd_table)
 
         # --- Environment Variables ---
-        self.env_table = self._make_table(
-            title="Environment Variables",
-            headers=["Variable", "Value", "Status", "Comment", "Source"]
-        )
+        self.env_table = self._make_env_table("Environment Variables")
         layout.addWidget(self.env_table)
 
     # ---------------------------------------------------------
@@ -69,6 +67,23 @@ class DashboardWidget(QWidget):
         scroll.setWidget(table)
 
         # Layout inside group
+        layout = QVBoxLayout(group)
+        layout.addWidget(scroll)
+
+        group.table = table
+        return group
+    def _make_env_table(self, title):
+        group = QGroupBox(title)
+
+        table = QTableView()
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        table.horizontalHeader().setStretchLastSection(True)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(table)
+
         layout = QVBoxLayout(group)
         layout.addWidget(scroll)
 
@@ -106,14 +121,5 @@ class DashboardWidget(QWidget):
     # ---------------------------------------------------------
     # Public API: Populate Environment Variables
     # ---------------------------------------------------------
-    def set_environment_variables(self, env_vars):
-        table = self.env_table.table
-        table.setRowCount(0)
-
-        for row, v in enumerate(env_vars):
-            table.insertRow(row)
-            table.setItem(row, 0, QTableWidgetItem(v.get("name", "")))
-            table.setItem(row, 1, QTableWidgetItem(v.get("value", "")))
-            table.setItem(row, 2, QTableWidgetItem(v.get("status", "")))
-            table.setItem(row, 3, QTableWidgetItem(v.get("comment", "")))
-            table.setItem(row, 4, QTableWidgetItem(v.get("source", "")))
+    def set_environment_model(self, model):
+        self.env_table.table.setModel(model)

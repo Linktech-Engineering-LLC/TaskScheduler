@@ -1,0 +1,51 @@
+name: Feature Request
+description: Propose an enhancement or new capability for TaskScheduler.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for contributing ideas to improve the suite.
+        Please describe the feature clearly and deterministically.
+
+  - type: input
+    id: component
+    attributes:
+      label: Component
+      description: Which subsystem does this affect?
+      placeholder: Cron, Systemd, Environment, Orchestrator, GUI, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: High‑level description of the feature.
+      placeholder: Clear, operator‑grade summary.
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this feature needed? What problem does it solve?
+      placeholder: Deterministic justification.
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Detailed Proposal
+      description: Describe expected behavior, UI changes, invariants, etc.
+      placeholder: |
+        - Expected behavior
+        - Architectural impact
+        - UI footprint
+        - Validation rules
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Optional — list other approaches you evaluated.

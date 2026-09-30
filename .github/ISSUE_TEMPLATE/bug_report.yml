@@ -1,0 +1,53 @@
+name: Bug Report
+description: Report a reproducible defect in the TaskScheduler suite.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report a defect.
+        Please provide deterministic, reproducible details.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version or commit hash you are using.
+      placeholder: e.g., v0.9.2 or 1a2b3c4d
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect to happen?
+      placeholder: Clear, operator‑grade description.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: Deterministic steps to reproduce the issue.
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Include only the relevant portion of logs.
+      render: text
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, systemd version, etc.
+      placeholder: Linux distro, Python 3.12+, systemd version
