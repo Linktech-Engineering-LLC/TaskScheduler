@@ -14,7 +14,7 @@ Modified: 2026-09-25
 import getpass
 import subprocess
 
-from ..cron_entry import CronEntry
+from ..cron import CronEntry
 from PythonTools.sessions import LocalSession, SSHSession
 
 class CronManager:

@@ -5,15 +5,17 @@
  Package: TimerDeck
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
- Created: 2026-09-25
-Modified: 2026-09-25
- File: timerdeck/__init__.py
+ Created: 2026-10-01
+ Modified: 2026-10-01
+ File: taskscheduler/cron/__init__.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from .main_window import MainWindow
+from .cron_editor import CronJobEditor
+from .cron_entry import CronEntry
 
 __all__ = [
-    "MainWindow",
+    "CronJobEditor",
+    "CronEntry"
 ]

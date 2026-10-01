@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Leon McClatchey, Linktech Engineering LLC
+
+"""
+ Package: TimerDeck
+ Author: Leon McClatchey
+ Company: Linktech Engineering LLC
+ Created: 2026-10-01
+ Modified: 2026-10-01
+ File: taskscheduler/systemd/gui/systemd_tasks_window.py
+ Version: 1.0.0
+ Description: Description of this module
+"""
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, 
+    QTableWidget, QTableWidgetItem, QSizePolicy
+)
+from ..discovery import discover_systemd_tasks
+from .visualizer_widget import CalendarVisualizerWidget
+
+class SystemdTasksWindow(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Systemd Tasks")
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        layout = QVBoxLayout(self)
+
+        # Header
+        header = QLabel("<b>Systemd Tasks</b>")
+        header.setTextFormat(Qt.RichText)
+        layout.addWidget(header)
+
+        # Table of tasks
+        self.table = QTableWidget()
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["Timer", "Service", "Next Run", "Last Run", "Status"])
+        layout.addWidget(self.table)
+
+        # Load data
+        self._populate_table()
+
+    def _populate_table(self):
+        tasks = discover_systemd_tasks(user=True)
+        self.table.setRowCount(len(tasks))
+
+        for row, task in enumerate(tasks):
+            self.table.setItem(row, 0, QTableWidgetItem(task.timer.name))
+            self.table.setItem(row, 1, QTableWidgetItem(task.service.name))
+            self.table.setItem(row, 2, QTableWidgetItem(task.timer.next_run or ""))
+            self.table.setItem(row, 3, QTableWidgetItem(task.timer.last_run or ""))
+            self.table.setItem(row, 4, QTableWidgetItem(task.timer.description or "active"))
+
+            # Optional: attach visualizer widget per row
+            self.table.setCellWidget(row, 0, CalendarVisualizerWidget(task.timer.on_calendar[0]))

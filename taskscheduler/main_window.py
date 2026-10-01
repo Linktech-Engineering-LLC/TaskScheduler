@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
 
-from .cron_editor import CronJobEditor
+from .cron import CronJobEditor
 from .environment import (
     EnvironmentController,
     EnvironmentTableModel,
@@ -34,6 +34,7 @@ from .logic import (
     SystemdManager,
     UserManager
 )
+from .systemd.gui.systemd_tasks_window import SystemdTasksWindow
 from .ui.widgets import icon, make_card
 from .ui.widgets import (
     CronTableWidget,
@@ -70,6 +71,7 @@ class MainWindow(QMainWindow):
         self.host_manager = HostManager()
         self.user_manager = UserManager()
         self.systemd_manager = SystemdManager()
+        self.systemd_window = SystemdTasksWindow()
         self.env_controller = EnvironmentController()
         self.env_model = EnvironmentTableModel([])
 
@@ -134,7 +136,7 @@ class MainWindow(QMainWindow):
         # Systemd placeholder
         systemd_view = QLabel("Systemd Timers\n\nList of systemd timers will appear here.")
         systemd_view.setAlignment(Qt.AlignCenter)
-        self.stack.addWidget(systemd_view)
+        self.stack.addWidget(self.systemd_window)
 
         # Cron Table
         self.cron_table = CronTableWidget()
@@ -144,7 +146,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
 
         self.VIEW_DASHBOARD = 0
-        self.VIEW_SYSTEMD = 1
+        self.VIEW_SYSTEMD = self.stack.indexOf(self.systemd_window)
         self.VIEW_CRON = 2
 
     # ============================================================
@@ -416,3 +418,9 @@ class MainWindow(QMainWindow):
 
     def refresh_env_vars(self):
         print("Refreshing environment variables")
+
+    def open_systemd_tasks(self):
+        from systemd.gui.systemd_tasks_window import SystemdTasksWindow
+        self.systemd_window = SystemdTasksWindow(self)
+        self.stack.addWidget(self.systemd_window)
+        self.stack.setCurrentWidget(self.systemd_window)
