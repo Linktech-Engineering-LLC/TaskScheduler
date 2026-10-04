@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
- Modified: 2026-10-01
+Modified: 2026-10-04
  File: taskscheduler/systemd/gui/systemd_tasks_window.py
  Version: 1.0.0
  Description: Description of this module
@@ -21,11 +21,11 @@ from ..discovery import discover_systemd_tasks
 from .visualizer_widget import CalendarVisualizerWidget
 
 class SystemdTasksWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, logger=None):
         super().__init__(parent)
         self.setWindowTitle("Systemd Tasks")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
+        self.logger = logger
         layout = QVBoxLayout(self)
 
         # Header
@@ -43,7 +43,7 @@ class SystemdTasksWindow(QWidget):
         self._populate_table()
 
     def _populate_table(self):
-        tasks = discover_systemd_tasks(user=True)
+        tasks = discover_systemd_tasks(user=True, logger=self.logger)
         self.table.setRowCount(len(tasks))
 
         for row, task in enumerate(tasks):

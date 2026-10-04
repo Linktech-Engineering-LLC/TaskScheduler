@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
-Modified: 2026-09-25
+Modified: 2026-10-04
  File: timerdeck/ui/main_window.py
  Version: 1.0.0
  Description: Main Window Orchestrator
@@ -47,10 +47,11 @@ from PythonTools.net.users import get_valid_users
 class MainWindow(QMainWindow):
     request_close = Signal()
 
-    def __init__(self):
+    def __init__(self, logger):
         super().__init__()
         
         self.cron_rows = []
+        self.logger = logger
         # --- Icons ---
         self.icon_dashboard = icon("dashboard.svg")
         self.icon_systemd_user = icon("systemd-user.svg")
@@ -71,7 +72,6 @@ class MainWindow(QMainWindow):
         self.host_manager = HostManager()
         self.user_manager = UserManager()
         self.systemd_manager = SystemdManager()
-        self.systemd_window = SystemdTasksWindow()
         self.env_controller = EnvironmentController()
         self.env_model = EnvironmentTableModel([])
 
@@ -134,9 +134,11 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.dashboard)
 
         # Systemd placeholder
-        systemd_view = QLabel("Systemd Timers\n\nList of systemd timers will appear here.")
-        systemd_view.setAlignment(Qt.AlignCenter)
-        self.stack.addWidget(self.systemd_window)
+        self.systemd_placeholder = QLabel(
+            "Systemd Tasks\n\nSystemd task management will appear here."
+        )
+        self.systemd_placeholder.setAlignment(Qt.AlignCenter)
+        self.stack.addWidget(self.systemd_placeholder)
 
         # Cron Table
         self.cron_table = CronTableWidget()
@@ -146,7 +148,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
 
         self.VIEW_DASHBOARD = 0
-        self.VIEW_SYSTEMD = self.stack.indexOf(self.systemd_window)
+        self.VIEW_SYSTEMD = self.stack.indexOf(self.systemd_placeholder)
         self.VIEW_CRON = 2
 
     # ============================================================
@@ -234,7 +236,7 @@ class MainWindow(QMainWindow):
                 self.stack.setCurrentIndex(self.VIEW_DASHBOARD)
 
             case "systemd":
-                self.stack.setCurrentIndex(self.VIEW_SYSTEMD)
+                self.open_systemd_tasks()
 
             case "cron":
                 self.stack.setCurrentIndex(self.VIEW_CRON)
@@ -420,7 +422,8 @@ class MainWindow(QMainWindow):
         print("Refreshing environment variables")
 
     def open_systemd_tasks(self):
-        from systemd.gui.systemd_tasks_window import SystemdTasksWindow
-        self.systemd_window = SystemdTasksWindow(self)
-        self.stack.addWidget(self.systemd_window)
+        if not hasattr(self, "systemd_window"):
+            self.systemd_window = SystemdTasksWindow(parent=self, logger=self.logger)
+            self.stack.addWidget(self.systemd_window)
+
         self.stack.setCurrentWidget(self.systemd_window)
