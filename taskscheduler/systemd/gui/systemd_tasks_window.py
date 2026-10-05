@@ -2,11 +2,11 @@
 # Copyright (c) 2026 Leon McClatchey, Linktech Engineering LLC
 
 """
- Package: TimerDeck
+ Package: TaskScheduler
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
-Modified: 2026-10-04
+ Modified: 2026-10-05
  File: taskscheduler/systemd/gui/systemd_tasks_window.py
  Version: 1.0.0
  Description: Description of this module
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 from ..discovery import discover_systemd_tasks
 from .visualizer_widget import CalendarVisualizerWidget
+from .monotonic_visualizer_widget import MonotonicVisualizerWidget
 
 class SystemdTasksWindow(QWidget):
     def __init__(self, parent=None, logger=None):
@@ -35,8 +36,10 @@ class SystemdTasksWindow(QWidget):
 
         # Table of tasks
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["Timer", "Service", "Next Run", "Last Run", "Status"])
+        self.table.setColumnCount(7)
+        self.table.setHorizontalHeaderLabels([
+            "Timer", "Service", "Command", "Next Run", "Last Run", "Status", "Comments"
+        ])
         layout.addWidget(self.table)
 
         # Load data
@@ -47,11 +50,14 @@ class SystemdTasksWindow(QWidget):
         self.table.setRowCount(len(tasks))
 
         for row, task in enumerate(tasks):
+            if self.logger:
+                self.logger.debug(f"_populate_table row={row}]=\ntask={task}")
+                print(f"row={row}\ntask={task}")
+
+            # Timer name only
             self.table.setItem(row, 0, QTableWidgetItem(task.timer.name))
             self.table.setItem(row, 1, QTableWidgetItem(task.service.name))
-            self.table.setItem(row, 2, QTableWidgetItem(task.timer.next_run or ""))
-            self.table.setItem(row, 3, QTableWidgetItem(task.timer.last_run or ""))
+            self.table.setItem(row, 2, QTableWidgetItem(task.timer.next_run or "—"))
+            self.table.setItem(row, 3, QTableWidgetItem(task.timer.last_run or "—"))
             self.table.setItem(row, 4, QTableWidgetItem(task.timer.description or "active"))
-
-            # Optional: attach visualizer widget per row
-            self.table.setCellWidget(row, 0, CalendarVisualizerWidget(task.timer.on_calendar[0]))
+            self.table.setItem(row, 5, QTableWidgetItem(", ".join(task.schedule.comments)))

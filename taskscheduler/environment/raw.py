@@ -1,15 +1,17 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Leon McClatchey, Linktech Engineering LLC
+
 """
- Package: PythonTools
+ Package: TaskScheduler
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
-Created: 2026-09-30
-Modified: 2026-09-30
- File: ~/projects/Python/TaskScheduler/taskscheduler/environment/raw.py
+ Created: 2026-10-05
+ Modified: 2026-10-05
+ File: taskscheduler/environment/raw.py
  Version: 1.0.0
- Description: Module description here
+ Description: Description of this module
 """
+
 
 from dataclasses import dataclass
 from enum import Enum

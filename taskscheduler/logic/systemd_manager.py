@@ -2,11 +2,11 @@
 # Copyright (c) 2026 Leon McClatchey, Linktech Engineering LLC
 
 """
- Package: TimerDeck
+ Package: TaskScheduler
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
-Modified: 2026-09-25
+ Modified: 2026-10-05
  File: timerdeck/logic/systemd_manager.py
  Version: 1.0.0
  Description: Description of this module
@@ -33,16 +33,10 @@ class SystemdManager:
 
     # Placeholder for future systemd timer loading
     def load_timers(self, user, scope, ssh_manager=None):
-        current_user = getpass.getuser()
-
-        # Enforce correct scope rules
-        if user != current_user:
-            scope = "system"
-        else:
-            scope = self.active_scope
         session = ssh_manager.session if ssh_manager else LocalSession()
 
-        if scope == "user":
+        # user=True means use --user
+        if user:
             cmd = "systemctl --user list-timers --all"
         else:
             cmd = "systemctl list-timers --all"
@@ -56,27 +50,24 @@ class SystemdManager:
             if l.strip() and not l.startswith("NEXT") and not l.startswith("—")
         ]
 
-        parsed = []
+        parsed = {}
 
         for line in lines:
             parts = line.split()
-            # systemctl list-timers output looks like:
-            # NEXT LEFT LAST PASSED UNIT ACTIVATES
-            # We only care about UNIT and ACTIVATES
-            if len(parts) >= 6:
-                next_run = parts[0]
-                last_run = parts[2]
-                unit = parts[4]
-                activates = parts[5]
-            else:
-                continue
 
-            parsed.append({
+            unit = parts[-2]
+            activates = parts[-1]
+            timing = parts[:-2]
+
+            next_run = " ".join(timing[0:4])
+            last_run = " ".join(timing[5:9])
+
+            parsed[unit] = {
                 "timer": unit,
                 "service": activates,
                 "next": next_run,
                 "last": last_run,
-                "status": "active"  # placeholder
-            })
+                "status": "active"
+            }
 
-        return parsed
+        return list(parsed.values())

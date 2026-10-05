@@ -2,11 +2,11 @@
 # Copyright (c) 2026 Leon McClatchey, Linktech Engineering LLC
 
 """
- Package: TimerDeck
+ Package: TaskScheduler
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
- Modified: 2026-10-01
+ Modified: 2026-10-05
  File: taskscheduler/systemd/parsers.py
  Version: 1.0.0
  Description: Description of this module
@@ -24,78 +24,6 @@ from .models import (
     WEEKDAYS
 )
 from PythonTools.net import local_command, sudo_run
-
-def build_timer_unit(name: str, parsed: Dict[str, Dict[str, List[str]]], path: Path) -> SystemdTimerUnit:
-    unit = SystemdTimerUnit(name=name, fragment_path=path)
-
-    unit.description = parsed.get("Unit", {}).get("Description", [None])[0]
-
-    timer = parsed.get("Timer", {})
-    unit.on_calendar = timer.get("OnCalendar", [])
-    unit.accuracy_sec = timer.get("AccuracySec", [None])[0]
-    unit.randomized_delay_sec = timer.get("RandomizedDelaySec", [None])[0]
-    unit.persistent = timer.get("Persistent", ["false"])[0].lower() == "true"
-
-    # Linked service name (if present)
-    unit.unit = parsed.get("Unit", {}).get("Unit", [None])[0]
-
-    return unit
-
-def build_service_unit(name: str, parsed: Dict[str, Dict[str, List[str]]], path: Path) -> SystemdServiceUnit:
-    svc = SystemdServiceUnit(name=name, fragment_path=path)
-
-    svc.description = parsed.get("Unit", {}).get("Description", [None])[0]
-
-    service = parsed.get("Service", {})
-    svc.exec_start = service.get("ExecStart", [])
-
-    wd = service.get("WorkingDirectory", [None])[0]
-    svc.working_directory = Path(wd) if wd else None
-
-    svc.type = service.get("Type", [None])[0]
-    svc.user = service.get("User", [None])[0]
-    svc.group = service.get("Group", [None])[0]
-
-    # Environment="KEY=VALUE"
-    for env in service.get("Environment", []):
-        if "=" in env:
-            key, val = env.split("=", 1)
-            svc.environment[key.strip()] = val.strip().strip('"')
-
-    return svc
-
-def parse_systemd_unit(path: Path) -> Dict[str, Dict[str, List[str]]]:
-    """
-    Parse a systemd unit file into a structured dict:
-    {
-        "Section": {
-            "Key": ["value1", "value2"]
-        }
-    }
-    """
-    data: Dict[str, Dict[str, List[str]]] = {}
-    section: str | None = None
-
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-
-        # Skip comments and empty lines
-        if not line or line.startswith("#"):
-            continue
-
-        # Section header
-        if line.startswith("[") and line.endswith("]"):
-            section = line[1:-1]
-            data.setdefault(section, {})
-            continue
-
-        # Key=value
-        if "=" in line and section:
-            key, value = line.split("=", 1)
-            key, value = key.strip(), value.strip()
-            data[section].setdefault(key, []).append(value)
-
-    return data
 
 def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = None, logger=None) -> Dict[str, Dict[str, str]]:
     """
@@ -120,6 +48,8 @@ def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = No
         if user or sudo_password is None
         else sudo_run(cmd, sudo_password, logger=logger).as_tuple
     )
+    if logger:
+        logger.debug(f"[DEBUG]get_timer_runtime_metadata Results={out}")
     metadata: Dict[str, Dict[str, str]] = {}
 
     for line in out.splitlines():
@@ -144,7 +74,6 @@ def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = No
         }
 
     return metadata
-
 
 def parse_oncalendar(expr: str) -> CalendarSpec:
     raw = expr.strip()
@@ -245,3 +174,23 @@ def summarize_calendar(spec: CalendarSpec) -> str:
         parts.append(f"Times: {' '.join(spec.times)}")
 
     return "\n".join(parts)
+
+def find_dropins(name: str, logger=None) -> list[Path]:
+    """
+    Locate all drop-in configuration files for a systemd unit.
+    """
+    dirs = [
+        Path("/etc/systemd/user") / f"{name}.d",
+        Path("/run/systemd/user") / f"{name}.d",
+        Path("/usr/lib/systemd/user") / f"{name}.d",
+    ]
+
+    dropins = []
+    for d in dirs:
+        if d.exists():
+            dropins.extend(sorted(d.glob("*.conf")))
+
+    if logger:
+        logger.debug(f"dropins for {name}: {dropins}")
+
+    return dropins

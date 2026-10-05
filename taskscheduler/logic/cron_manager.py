@@ -2,11 +2,11 @@
 # Copyright (c) 2026 Leon McClatchey, Linktech Engineering LLC
 
 """
- Package: TimerDeck
+ Package: TaskScheduler
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
-Modified: 2026-09-25
+ Modified: 2026-10-05
  File: timerdeck/logic/cron_manager.py
  Version: 1.0.0
  Description: Description of this module
