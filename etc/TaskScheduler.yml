@@ -1,0 +1,111 @@
+TaskScheduler:
+  config_version: 1.0.0
+  mode: developer
+  features:
+    cron: true
+    systemd: true
+    env_manager: true
+    log_viewer: true
+    alias_detection: true
+
+  shell:
+    override_shell: null
+
+  gui:
+    theme: dark
+    grid_layout: KCron
+    editable_fields:
+      - gui.theme
+      - gui.grid_layout
+      - logs.max_lines
+      - logs.highlight_patterns
+
+  safety:
+    warn_on_alias: true
+    warn_on_relative_paths: true
+    validate_before_save: true
+    require_explicit_path: true
+
+  install:
+    mode: base
+    portable_root: null
+distros:
+  debian:
+    supports_systemd: true
+    supports_cron: true
+    supports_env: true
+    cron_tab_path: /var/spool/cron/crontabs/{user}
+    cron_log_path: /var/log/syslog
+    systemd_unit_path: /etc/systemd/system
+    env_files:
+      - /etc/environment
+      - ~/.profile
+    package_manager: apt
+
+  redhat:
+    supports_systemd: true
+    supports_cron: true
+    supports_env: true
+    cron_tab_path: /var/spool/cron/{user}
+    cron_log_path: /var/log/cron
+    systemd_unit_path: /usr/lib/systemd/system
+    env_files:
+      - /etc/environment
+      - ~/.bash_profile
+    package_manager: dnf
+
+  suse:
+    supports_systemd: true
+    supports_cron: true
+    supports_env: true
+    cron_tab_path: /var/spool/cron/tabs/{user}
+    cron_log_path: /var/log/messages
+    systemd_unit_path: /usr/lib/systemd/system
+    env_files:
+      - /etc/environment
+      - ~/.bashrc
+    package_manager: zypper
+
+  arch:
+    supports_systemd: true
+    supports_cron: true
+    supports_env: true
+    cron_tab_path: /var/spool/cron/{user}
+    cron_log_path: /var/log/cron.log
+    systemd_unit_path: /etc/systemd/system
+    env_files:
+      - /etc/environment
+      - ~/.bash_profile
+    package_manager: pacman
+logs:
+  console_enabled: true
+  color_enabled: true
+  level: DEBUG
+  path: ~/logs
+  timestamp_format: "%Y-%m-%d %H:%M:%S"
+  max_lines: 500
+  highlight_patterns:
+    - ERROR
+    - WARN
+    - FAILED
+  include_stack_traces: false
+  rotation:
+    enabled: true
+    max_size_mb: 5
+    max_files: 10
+    compress: true
+    archive_type: tar.gz
+  archive:
+    enabled: true
+    path: ~/logs/archive
+    compress: true
+  retention:
+    days: 30
+  subsystems:
+    cron: true
+    systemd: true
+    environment: true
+    internal: true
+  gui:
+    default_view: task_scheduler
+    allow_path_edit: true

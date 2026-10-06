@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "TaskScheduler"
-version = "0.0.1"
+version = "0.0.3"
 description = "GUI Manager for SystemD/Cron Events."
 authors = [
-    { name = "Leon McClatchey", email = "leon@linktech.engineering" }
+    { name = "Leon McClatchey", email = "ldmcclatchey@linktech.engineering" }
 ]
 requires-python = ">=3.12"
 readme = "README.md"
@@ -18,7 +18,8 @@ dependencies = [
 
 [project.scripts]
 # Optional: if you want a CLI entry point
-timerdeck = "TimerDeck:main"
+TaskScheduler = "TaskScheduler.TaskScheduler:main"
 
 [tool.setuptools.packages.find]
 exclude = ["data*", "Logs*", "archive*"]
+include = ["TaskScheduler"]

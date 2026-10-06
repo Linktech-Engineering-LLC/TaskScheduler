@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-05
+ Modified: 2026-10-06
  File: taskscheduler/ui/main_window.py
  Version: 1.0.0
  Description: Main Window Orchestrator
@@ -47,11 +47,12 @@ from PythonTools.net.users import get_valid_users
 class MainWindow(QMainWindow):
     request_close = Signal()
 
-    def __init__(self, logger):
+    def __init__(self, config: dict, logger = None):
         super().__init__()
         
         self.cron_rows = []
         self.logger = logger
+        self.config = config
         # --- Icons ---
         self.icon_dashboard = icon("dashboard.svg")
         self.icon_systemd_user = icon("systemd-user.svg")
