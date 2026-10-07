@@ -247,6 +247,10 @@ A structured documentation index helps operators, contributors, and maintainers 
 * [Icons.md](docs/ui/Icons.md)
   Icon system, stroke rules, design invariants, and naming conventions.
 
+> See [docs/ui/index.md](docs/ui/index.md) for the complete UI module overview and deterministic design guarantees.
+
+---
+
 ### Core Architecture
 * [Systemd.md](docs/core/Systemd.md)
   Timer enumeration, unit linkage, next/last run parsing, comment extraction.
@@ -256,6 +260,8 @@ A structured documentation index helps operators, contributors, and maintainers 
   Environment variable extraction, deterministic parsing, editor behavior.
 * [Orchestrator.md](docs/core/Orchestrator.md)
   Manager orchestration model, refresh cycles, deterministic state transitions.
+
+> See [docs/core/index.md](docs/core/index.md) for the complete architecture module overview and deterministic guarantees.
 
 ### Security & Privilege
 * [Passwords.md](docs/security/Passwords.md)

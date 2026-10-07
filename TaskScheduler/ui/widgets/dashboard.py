@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-10-07
  File: taskscheduler/ui/widgets/dashboard.py
  Version: 1.0.0
  Description: Description of this module
@@ -19,10 +19,15 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from TaskScheduler import PROJECTNAME
+from PythonTools.gui import QtLoggerMixin
 
-class DashboardWidget(QWidget):
-    def __init__(self, parent=None):
+
+class DashboardWidget(QWidget, QtLoggerMixin):
+    def __init__(self, parent=None, logctx: dict | None = None):
         super().__init__(parent)
+        self._init_logger(logctx, "DASHBOARD", PROJECTNAME)
+        self.logger.info("DashboardWidget Initialized.")
 
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
@@ -44,6 +49,7 @@ class DashboardWidget(QWidget):
         # --- Environment Variables ---
         self.env_table = self._make_env_table("Environment Variables")
         layout.addWidget(self.env_table)
+        self.finalize_logging_wrappers()
 
     # ---------------------------------------------------------
     # Helper: Create a titled table inside a scrollable QGroupBox

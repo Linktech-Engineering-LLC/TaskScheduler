@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
- Modified: 2026-10-05
+ Modified: 2026-10-07
  File: taskscheduler/systemd/gui/systemd_tasks_window.py
  Version: 1.0.0
  Description: Description of this module
@@ -17,16 +17,22 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, 
     QTableWidget, QTableWidgetItem, QSizePolicy
 )
+
+from TaskScheduler import PROJECTNAME
 from ..discovery import discover_systemd_tasks
 from .visualizer_widget import CalendarVisualizerWidget
 from .monotonic_visualizer_widget import MonotonicVisualizerWidget
 
-class SystemdTasksWindow(QWidget):
-    def __init__(self, parent=None, logger=None):
+from PythonTools.gui import QtLoggerMixin
+
+class SystemdTasksWindow(QWidget, QtLoggerMixin):
+    def __init__(self, parent=None, logctx: dict | None = None):
         super().__init__(parent)
+        self._init_logger(logctx, "SYSTEMD", PROJECTNAME)
+        self.logger.info("SystemdTasksWindow Initialized.")
+
         self.setWindowTitle("Systemd Tasks")
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.logger = logger
         layout = QVBoxLayout(self)
 
         # Header
@@ -50,9 +56,8 @@ class SystemdTasksWindow(QWidget):
         self.table.setRowCount(len(tasks))
 
         for row, task in enumerate(tasks):
-            if self.logger:
+            if self.logctx.get("level") == "DEBUG":
                 self.logger.debug(f"_populate_table row={row}]=\ntask={task}")
-                print(f"row={row}\ntask={task}")
 
             # Timer name only
             self.table.setItem(row, 0, QTableWidgetItem(task.timer.name))

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-06
+ Modified: 2026-10-07
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
@@ -23,15 +23,14 @@ from PythonTools.ansible import load_yaml
 from PythonTools.utils import read_toml
 
 from .main_window import MainWindow
-from TaskScheduler import __project_name__
+from TaskScheduler import PROJECTNAME, VERSION
 
-ProjectName = __project_name__
-ProjectMeta = metadata(ProjectName)
+SHELL = pwd.getpwnam( getpass.getuser()).pw_shell
 
 def init_logging(cfg):
     log_cfg = {
-        "path": Path(cfg.get("path")) / f"{ProjectName}.log",
-        "log_level": cfg.get("level"),
+        "path": Path(cfg.get("path")) / f"{PROJECTNAME}.log",
+        "log_level": cfg.get("level", "INFO"),
         "log_max_mb": cfg.get("rotation").get("max_size_mb"),
         "archive_mode": cfg.get("rotation").get("archive_type"),
         "backup_count": cfg.get("rotation").get("max_files"),
@@ -42,21 +41,27 @@ def init_logging(cfg):
     }
     logger_factory = LoggerFactory(
         log_cfg=log_cfg,
-        project_name=ProjectName
+        project_name=PROJECTNAME
     )
     logger = logger_factory.get_logger(None)
-    logger.info(f"{ProjectName} logging initialized.")
-    return logger
+    logger.info(f"{PROJECTNAME} logging initialized.")
+    return {
+        "factory": logger_factory,
+        "logger": logger,
+        "level": log_cfg.get("log_level"),
+        "highlights": cfg.get("highlight_patterns", {}),
+        "subsystems": cfg.get("subsystems", {}),
+        "gui": cfg.get("gui", {})
+    }
 def main():
     config = load_yaml(Path("etc/TaskScheduler.yml"))
-    user = getpass.getuser()
-    config[ProjectName]["shell"]["default"] = pwd.getpwnam(user).pw_shell
+    config[PROJECTNAME]["shell"]["default"] = SHELL
 
-    logger = init_logging(config.get("logs", {}))
+    logctx = init_logging(config.get("logs", {}))
 
-    app = QApplication(sys.argv)
+    app = QApplication([])
 
-    window = MainWindow(config, logger)
+    window = MainWindow(config, logctx)
 
     window.show()
 

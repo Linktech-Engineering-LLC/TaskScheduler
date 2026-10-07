@@ -6,18 +6,24 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-10-07
  File: timerdeck/logic/cron_manager.py
  Version: 1.0.0
  Description: Description of this module
 """
 import getpass
-import subprocess
+import inspect
 
 from ..cron import CronEntry
+from TaskScheduler import PROJECTNAME
+from PythonTools.gui import LoggerMixin
 from PythonTools.sessions import LocalSession, SSHSession
 
-class CronManager:
+class CronManager(LoggerMixin):
+    def __init__(self, logctx=None):
+        self._init_logger(logctx, "CRONMANAGER", PROJECTNAME)
+        self.finalize_logging_wrappers()
+        self.logger.info("Initializing CronManager")
     def load_user_cron(self, user: str, ssh_manager=None):
         # Determine session type
         session = ssh_manager.session if ssh_manager else LocalSession()
@@ -30,6 +36,9 @@ class CronManager:
             cmd = "crontab -l"
         else:
             cmd = f"sudo crontab -u {user} -l"
+        if self.logctx and self.logctx.get("level") == "DEBUG":
+            fname = inspect.stack()[0].function
+            self.logger.debug(f"{fname} command = {cmd}")
         # Run command
         output = session.run(cmd)
         # Parse cron lines
@@ -106,6 +115,10 @@ class CronManager:
             )
             entry.daily = (entry.dom == "*" and entry.month == "*" and entry.dow == "*")
             entry.boot = stripped.startswith("@reboot")
+
+            if self.logctx and self.logctx.get("level") == "DEBUG":
+                fname = inspect.stack()[0].function
+                self.logger.debug(f"{fname} entry = {entry}")
 
             parsed.append(entry)
             pending_comment = ""

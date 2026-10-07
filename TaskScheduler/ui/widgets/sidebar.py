@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-10-07
  File: taskscheduler/ui/widgets/sidebar.py
  Version: 1.0.0
  Description: Description of this module
@@ -21,9 +21,12 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Signal
 
+from TaskScheduler import PROJECTNAME
+from PythonTools.gui import QtLoggerMixin
+
 from ..widgets.cards import icon
 
-class SidebarWidget(QWidget):
+class SidebarWidget(QWidget, QtLoggerMixin):
     # Signals emitted upward to MainWindow
     scopeChanged = Signal(str)
     userChanged = Signal(str)
@@ -35,8 +38,10 @@ class SidebarWidget(QWidget):
     deleteRequested = Signal()
     refreshRequested = Signal()
 
-    def __init__(self, users: list[str], hosts: list[str]):
+    def __init__(self, users: list[str], hosts: list[str], logctx: dict | None = None):
         super().__init__()
+        self._init_logger(logctx, "SIDEBAR", PROJECTNAME)
+        self.logger.info("SidebarWidget Initialized.")
 
         self.users = users
         self.hosts = hosts

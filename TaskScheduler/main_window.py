@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-06
+ Modified: 2026-10-07
  File: taskscheduler/ui/main_window.py
  Version: 1.0.0
  Description: Main Window Orchestrator
@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
 
+from TaskScheduler import PROJECTNAME
 from .cron import CronJobEditor
 from .environment import (
     EnvironmentController,
@@ -35,23 +36,25 @@ from .logic import (
     UserManager
 )
 from .systemd.gui.systemd_tasks_window import SystemdTasksWindow
-from .ui.widgets import icon, make_card
+from .ui.widgets import icon
 from .ui.widgets import (
     CronTableWidget,
     DashboardWidget,
     SidebarWidget
 )
-
+from PythonTools.gui import QtLoggerMixin
 from PythonTools.net.users import get_valid_users
 
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, QtLoggerMixin):
     request_close = Signal()
 
-    def __init__(self, config: dict, logger = None):
+    def __init__(self, config: dict, logctx: dict | None = None):
         super().__init__()
         
+        self._init_logger(logctx, "GUI", PROJECTNAME)
+        self.logger.info("MainWindow Initialized.")
         self.cron_rows = []
-        self.logger = logger
+        
         self.config = config
         # --- Icons ---
         self.icon_dashboard = icon("dashboard.svg")
@@ -68,11 +71,11 @@ class MainWindow(QMainWindow):
         self.icon_logs = icon("logs.svg")
 
         # --- Managers ---
-        self.cron_manager = CronManager()
+        self.cron_manager = CronManager(logctx=self.logctx)
         self.env_manager = EnvManager()
         self.host_manager = HostManager()
         self.user_manager = UserManager()
-        self.systemd_manager = SystemdManager()
+        self.systemd_manager = SystemdManager(logctx=self.logctx)
         self.env_controller = EnvironmentController()
         self.env_model = EnvironmentTableModel([])
 
@@ -99,6 +102,7 @@ class MainWindow(QMainWindow):
 
         # --- Initial Dashboard Refresh ---
         self.refresh_dashboard()
+        self.logger.info("MainWindow UI constructed Successfully.")
 
     # ============================================================
     # UI Construction
@@ -131,7 +135,7 @@ class MainWindow(QMainWindow):
         self.stack = QStackedWidget()
 
         # Dashboard
-        self.dashboard = DashboardWidget()
+        self.dashboard = DashboardWidget(logctx=self.logctx)
         self.stack.addWidget(self.dashboard)
 
         # Systemd placeholder
@@ -142,7 +146,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.systemd_placeholder)
 
         # Cron Table
-        self.cron_table = CronTableWidget()
+        self.cron_table = CronTableWidget(logctx=self.logctx)
         self.stack.addWidget(self.cron_table)
 
         splitter.addWidget(self.stack)
@@ -151,6 +155,8 @@ class MainWindow(QMainWindow):
         self.VIEW_DASHBOARD = 0
         self.VIEW_SYSTEMD = self.stack.indexOf(self.systemd_placeholder)
         self.VIEW_CRON = 2
+        
+        self.logger.info("MainWindow UI built successfully.")
 
     # ============================================================
     # Actions
@@ -223,6 +229,7 @@ class MainWindow(QMainWindow):
     # ============================================================
     # View Switching
     # ============================================================
+    
     def show_view(self, view: str):
         self.active_view = view
 
@@ -234,6 +241,7 @@ class MainWindow(QMainWindow):
         
         match view:
             case "dashboard":
+                self.refresh_dashboard()
                 self.stack.setCurrentIndex(self.VIEW_DASHBOARD)
 
             case "systemd":
@@ -250,6 +258,7 @@ class MainWindow(QMainWindow):
     # ============================================================
     # Sidebar Callbacks
     # ============================================================
+    
     def load_user_cron(self, user: str):
         self.active_user = user
         self.cron_rows = self.cron_manager.load_user_cron(user)
@@ -265,6 +274,7 @@ class MainWindow(QMainWindow):
     # ============================================================
     # Dashboard Refresh
     # ============================================================
+    
     def refresh_dashboard(self):
         user = self.active_user
         scope = self.active_scope
@@ -282,6 +292,7 @@ class MainWindow(QMainWindow):
     # ============================================================
     # Cron View
     # ============================================================
+    
     def show_cron(self):
         scope = self.active_scope
 
@@ -307,9 +318,11 @@ class MainWindow(QMainWindow):
             QMessageBox.Yes | QMessageBox.No
         )
         if reply == QMessageBox.Yes:
+            self.logger.info("Closed Main Window")
             event.accept()
         else:
             event.ignore()
+    
     def populate(self, rows):
         self.setRowCount(len(rows))
         for i, entry in enumerate(rows):
@@ -338,6 +351,7 @@ class MainWindow(QMainWindow):
 
     def open_docs_page(self):
         pass
+    
     def set_scope(self, scope: str):
         """Update active scope when SidebarWidget changes it."""
         self.active_scope = scope
@@ -356,6 +370,7 @@ class MainWindow(QMainWindow):
             entry = dlg.get_cron_entry()
             self.add_entry_to_table(entry)
             self.write_crontab()
+    
     def edit_cron_job(self):
         row = self.cron_table.currentRow()
         if row < 0:
@@ -403,6 +418,7 @@ class MainWindow(QMainWindow):
 
     def delete_env_var(self):
         print("Delete environment variable requested")
+    
     def on_refresh_requested(self):
         match self.active_view:
             case "cron":
@@ -413,18 +429,22 @@ class MainWindow(QMainWindow):
                 self.refresh_env_vars()
             case _:
                 pass
+    
     def refresh_cron_jobs(self):
         print("Refreshing cron jobs")
 
+    
     def refresh_systemd_tasks(self):
         print("Refreshing systemd tasks")
 
+    
     def refresh_env_vars(self):
         print("Refreshing environment variables")
 
+    
     def open_systemd_tasks(self):
         if not hasattr(self, "systemd_window"):
-            self.systemd_window = SystemdTasksWindow(parent=self, logger=self.logger)
+            self.systemd_window = SystemdTasksWindow(parent=self, logctx=self.logctx)
             self.stack.addWidget(self.systemd_window)
 
         self.stack.setCurrentWidget(self.systemd_window)
