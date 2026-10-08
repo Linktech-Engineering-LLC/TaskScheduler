@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-07
+ Modified: 2026-10-08
  File: taskscheduler/ui/main_window.py
  Version: 1.0.0
  Description: Main Window Orchestrator
@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
 
-from TaskScheduler import PROJECTNAME
+from TaskScheduler import PROJECTNAME, VERSION
 from .cron import CronJobEditor
 from .environment import (
     EnvironmentController,
@@ -55,7 +55,15 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.logger.info("MainWindow Initialized.")
         self.cron_rows = []
         
-        self.config = config
+        self.config = config or {}
+        self.mode = config["mode"]
+        self.env = config["environment"]
+        self.features = config["features"]
+        self.gui_cfg = config["gui"]
+        self.safety = config["safety"]
+        self.install = config["install"]
+        self.distro = config["distro"]
+        
         # --- Icons ---
         self.icon_dashboard = icon("dashboard.svg")
         self.icon_systemd_user = icon("systemd-user.svg")
@@ -87,7 +95,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.active_view = "dashboard"
 
         # --- Window Setup ---
-        self.setWindowTitle("TimerDeck")
+        title = f"{PROJECTNAME} v{VERSION}"
+        if self.mode != "production":
+            title += f" — {self.mode}"
+        self.setWindowTitle(title)
         self.resize(1100, 700)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowCloseButtonHint)
         self.statusBar().showMessage("Ready")
@@ -135,7 +146,8 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.stack = QStackedWidget()
 
         # Dashboard
-        self.dashboard = DashboardWidget(logctx=self.logctx)
+        self.dashboard = DashboardWidget(self, config=self.config, logctx=self.logctx)
+        self.dashboard.apply_distro_rules()
         self.stack.addWidget(self.dashboard)
 
         # Systemd placeholder
@@ -173,13 +185,16 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.menu_file.addAction(self.act_exit)
 
         # --- Tasks ---
-        self.act_view_systemd = QAction(self.icon_systemd_user, "Systemd Tasks", self)
-        self.act_view_cron = QAction(self.icon_cron, "Cron Jobs", self)
-        self.act_view_env = QAction(self.icon_env, "Environment Variables", self)
-        self.menu_tasks.addAction(self.act_view_systemd)
-        self.menu_tasks.addAction(self.act_view_cron)
-        self.menu_tasks.addAction(self.act_view_env)
-
+        if self.dashboard.systemd_enable:
+            self.act_view_systemd = QAction(self.icon_systemd_user, "Systemd Tasks", self)
+            self.menu_tasks.addAction(self.act_view_systemd)
+        if self.dashboard.cron_enable:
+            self.act_view_cron = QAction(self.icon_cron, "Cron Jobs", self)
+            self.menu_tasks.addAction(self.act_view_cron)
+        if self.dashboard.env_enabled:
+            self.act_view_env = QAction(self.icon_env, "Environment Variables", self)
+            self.menu_tasks.addAction(self.act_view_env)
+    
         # --- View ---
         self.act_view_dashboard = QAction(self.icon_dashboard, "Dashboard", self)
         self.menu_view.addAction(self.act_view_dashboard)
@@ -208,9 +223,12 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.act_settings.triggered.connect(self.open_settings_dialog)
 
         # Tasks
-        self.act_view_systemd.triggered.connect(lambda: self.show_view("systemd"))
-        self.act_view_cron.triggered.connect(lambda: self.show_view("cron"))
-        self.act_view_env.triggered.connect(lambda: self.show_view("env"))
+        if self.dashboard.systemd_enable:
+            self.act_view_systemd.triggered.connect(lambda: self.show_view("systemd"))
+        if self.dashboard.cron_enable:
+            self.act_view_cron.triggered.connect(lambda: self.show_view("cron"))
+        if self.dashboard.env_enabled:
+            self.act_view_env.triggered.connect(lambda: self.show_view("env"))
 
         # View
         self.act_view_dashboard.triggered.connect(lambda: self.show_view("dashboard"))
@@ -250,6 +268,11 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             case "cron":
                 self.stack.setCurrentIndex(self.VIEW_CRON)
                 self.show_cron()
+            case "env":
+                if self.dashboard.env_enabled:
+                    self.stack.setCurrentIndex(self.VIEW_ENV)
+                else:
+                    return
 
             case _:
                 # Optional: fallback
@@ -285,9 +308,12 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         systemd_rows = self.systemd_manager.load_timers(user, scope)
         self.dashboard.set_systemd_tasks(systemd_rows)
 
-        entries = self.env_controller.load_environment(EnvironmentMode.USER)
-        self.env_model.update_entries(entries)
-        self.dashboard.set_environment_model(self.env_model)
+        if self.dashboard.env_enabled:
+            entries = self.env_controller.load_environment(EnvironmentMode.USER)
+            self.env_model.update_entries(entries)
+            self.dashboard.set_environment_model(self.env_model)
+        else:
+            self.dashboard.clear_environment_model()
 
     # ============================================================
     # Cron View

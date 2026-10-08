@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-07
+ Modified: 2026-10-08
  File: taskscheduler/ui/widgets/dashboard.py
  Version: 1.0.0
  Description: Description of this module
@@ -20,15 +20,41 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from TaskScheduler import PROJECTNAME
+from ...models import SchedulerCapabilities, EnvironmentViewModel
+
 from PythonTools.gui import QtLoggerMixin
 
 
 class DashboardWidget(QWidget, QtLoggerMixin):
-    def __init__(self, parent=None, logctx: dict | None = None):
+    def __init__(self, parent=None, config: dict | None = None, logctx: dict | None = None):
         super().__init__(parent)
         self._init_logger(logctx, "DASHBOARD", PROJECTNAME)
         self.logger.info("DashboardWidget Initialized.")
 
+        self.config = config or {}
+
+        self.env      = self.config.get("environment") or {}
+        self.distro   = self.config.get("distro") or {}
+        self.features = self.config.get("features") or {}
+        self.mode     = self.config.get("mode") or "unknown"
+
+        missing = []
+        if not self.env: missing.append("environment")
+        if not self.distro: missing.append("distro")
+        if not self.features: missing.append("features")
+        if self.mode == "unknown": missing.append("mode")
+
+        if missing:
+            self.logger.warning(f"Dashboard config missing or null keys: {missing}")
+        elif self.logctx.get("level") == "DEBUG":
+            self.logger.debug(f"distro: {self.distro}")
+            self.logger.debug(f"features: {self.features}")
+            
+        self.scheduler_caps = SchedulerCapabilities(self.env, self.distro, self.features)
+        self.env_vm = EnvironmentViewModel(self.env, self.distro, self.mode)
+
+        self.apply_distro_rules()
+        
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
 
@@ -100,6 +126,8 @@ class DashboardWidget(QWidget, QtLoggerMixin):
     # Public API: Populate Cron Tasks
     # ---------------------------------------------------------
     def set_cron_tasks(self, tasks):
+        if not self.cron_enable:
+            return
         table = self.cron_table.table
         table.setRowCount(0)
 
@@ -113,6 +141,8 @@ class DashboardWidget(QWidget, QtLoggerMixin):
     # Public API: Populate Systemd Tasks
     # ---------------------------------------------------------
     def set_systemd_tasks(self, tasks):
+        if not self.systemd_enable:
+            return
         table = self.systemd_table.table
         table.setRowCount(0)
 
@@ -128,4 +158,30 @@ class DashboardWidget(QWidget, QtLoggerMixin):
     # Public API: Populate Environment Variables
     # ---------------------------------------------------------
     def set_environment_model(self, model):
-        self.env_table.table.setModel(model)
+        if self.env_enabled:
+            self.env_table.table.setModel(model)
+
+    def apply_distro_rules(self):
+        self.cron_enable = (
+            self.features.get("cront", True)
+            and self.distro.get("supports_cron", True)
+        )
+        self.systemd_enable = (
+            self.features.get("systemd", True)
+            and self.distro.get("supports_systemd", True)
+        )
+        self.env_enabled = (
+            self.features.get("env_manager", False)
+            and self.distro.get("supports_env", False)
+        )
+    def clear_environment_model(self):
+        # If env_model doesn't exist yet, create an empty one
+        if not hasattr(self, "env_model"):
+            from TaskScheduler.environment import EnvironmentTableModel
+            self.env_model = EnvironmentTableModel([])
+
+        # Replace entries with empty list
+        self.env_model.update_entries([])
+
+        # Push empty model into the UI
+        self.set_environment_model(self.env_model)

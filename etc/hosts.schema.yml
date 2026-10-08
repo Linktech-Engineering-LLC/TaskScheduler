@@ -1,0 +1,88 @@
+# SPDX-License-Identifier: MIT
+# Schema for TaskScheduler hosts.yml
+# Validates OS families → distros → capability blocks
+
+root:
+  type: dict
+  required: true
+  children:
+
+    linux:
+      type: dict
+      required: false
+      children:
+        "*":
+          type: dict
+          required: false
+          children:
+            supports_systemd:
+              type: bool
+              required: true
+
+            supports_cron:
+              type: bool
+              required: true
+
+            supports_env:
+              type: bool
+              required: true
+
+            cron_tab_path:
+              type: str
+              required: false
+
+            cron_log_path:
+              type: str
+              required: false
+
+            systemd_unit_path:
+              type: str
+              required: false
+
+            env_files:
+              type: list
+              required: false
+
+            package_manager:
+              type: str
+              required: false
+
+    windows:
+      type: dict
+      required: false
+      children:
+        "*":
+          type: dict
+          required: false
+          children:
+            supports_systemd:
+              type: bool
+              required: true
+
+            supports_cron:
+              type: bool
+              required: true
+
+            supports_env:
+              type: bool
+              required: true
+
+    macos:
+      type: dict
+      required: false
+      children:
+        "*":
+          type: dict
+          required: false
+          children:
+            supports_systemd:
+              type: bool
+              required: true
+
+            supports_cron:
+              type: bool
+              required: true
+
+            supports_env:
+              type: bool
+              required: true

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-07
+ Modified: 2026-10-08
  File: timerdeck/logic/cron_manager.py
  Version: 1.0.0
  Description: Description of this module
@@ -116,9 +116,9 @@ class CronManager(LoggerMixin):
             entry.daily = (entry.dom == "*" and entry.month == "*" and entry.dow == "*")
             entry.boot = stripped.startswith("@reboot")
 
-            if self.logctx and self.logctx.get("level") == "DEBUG":
-                fname = inspect.stack()[0].function
-                self.logger.debug(f"{fname} entry = {entry}")
+            #if self.logctx and self.logctx.get("level") == "DEBUG":
+            #    fname = inspect.stack()[0].function
+            #    self.logger.debug(f"{fname} entry = {entry}")
 
             parsed.append(entry)
             pending_comment = ""
