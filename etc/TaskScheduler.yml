@@ -2,9 +2,46 @@ TaskScheduler:
   config_version: 1.0.0
   mode: developer
   features:
-    cron: true
-    systemd: true
-    env_manager: true
+    cron:
+      enabled: true
+      editable: true
+      columns:
+        - Schedule
+        - Command
+        - Status
+        - Comment
+      readonly: true
+      stretch_last: true
+      autosize: true
+      status_labels:
+        enabled: "enabled"
+        disabled: "disabled"
+
+    systemd:
+      enabled: true
+      editable: true
+      columns:
+        - Unit
+        - Description
+        - Active
+        - Loaded
+      readonly: true
+      stretch_last: true
+      autosize: true
+      status_labels:
+        active: "active"
+        inactive: "inactive"
+
+    env_manager:
+      enabled: true
+      editable: true
+      columns:
+        - Variable
+        - Value
+        - Scope
+      readonly: false
+      stretch_last: true
+      autosize: true
     log_viewer: true
     alias_detection: true
 

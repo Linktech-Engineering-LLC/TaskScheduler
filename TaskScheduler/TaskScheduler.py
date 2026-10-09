@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-08
+ Modified: 2026-10-09
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
@@ -40,7 +40,15 @@ def init_config(logctx):
     config["mode"] = project["mode"]
     config["environment"] = get_environment()
     for f in ["features", "gui", "safety", "install"]:
-        config[f] = project.get(f, {})
+        block = project.get(f)
+        config[f] = block if isinstance(block, dict) else {}
+    features = config["features"]
+
+    # Ensure subsystem blocks exist
+    for subsystem in ["cron", "systemd", "env_manager"]:
+        features[subsystem] = features.get(subsystem) or {}
+
+
     env = config.get("environment", {})
     family = env.get("family")
     flavor = env.get("details", {}).get("flavor", {})
@@ -63,6 +71,8 @@ def init_config(logctx):
         distro_key = "default" if "default" in family_block else None
 
     config["distro"] = family_block.get(distro_key, {})
+    if not isinstance(config["distro"], dict):
+        config["distro"] = {}
     logger.info(f"Ready to process Distro: {config['distro']}")
     return config
 

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-07
+ Modified: 2026-10-09
  File: taskscheduler/ui/widgets/sidebar.py
  Version: 1.0.0
  Description: Description of this module
@@ -36,9 +36,10 @@ class SidebarWidget(QWidget, QtLoggerMixin):
     newRequested = Signal()
     editRequested = Signal()
     deleteRequested = Signal()
+    moveRequested = Signal()
     refreshRequested = Signal()
 
-    def __init__(self, users: list[str], hosts: list[str], logctx: dict | None = None):
+    def __init__(self, users: list[str], hosts: list[str], config: dict | None = None, logctx: dict | None = None):
         super().__init__()
         self._init_logger(logctx, "SIDEBAR", PROJECTNAME)
         self.logger.info("SidebarWidget Initialized.")
@@ -156,11 +157,13 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_new = QPushButton("New")
         self.btn_edit = QPushButton("Edit")
         self.btn_delete = QPushButton("Delete")
+        self.btn_move = QPushButton("Move")
         self.btn_refresh = QPushButton("Refresh")
 
         controls_layout.addWidget(self.btn_new)
         controls_layout.addWidget(self.btn_edit)
         controls_layout.addWidget(self.btn_delete)
+        controls_layout.addWidget(self.btn_move)
         controls_layout.addWidget(self.btn_refresh)
 
         layout.addWidget(self.controls_frame)
@@ -194,6 +197,7 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_new.clicked.connect(self.newRequested.emit)
         self.btn_edit.clicked.connect(self.editRequested.emit)
         self.btn_delete.clicked.connect(self.deleteRequested.emit)
+        self.btn_move.clicked.connect(self.moveRequested.emit)
         self.btn_refresh.clicked.connect(self.refreshRequested.emit)
 
     # ------------------------------------------------------------
@@ -231,3 +235,13 @@ class SidebarWidget(QWidget, QtLoggerMixin):
     # In Sidebar class
     def set_actions_visible(self, visible: bool):
         self.controls_frame.setVisible(visible)
+    def set_actions_enabled(self, enabled: bool):
+        self.btn_new.setEnabled(enabled)
+        self.btn_edit.setEnabled(enabled)
+        self.btn_delete.setEnabled(enabled)
+    def set_move_enabled(self, enabled: bool):
+        self.btn_move.setEnabled(enabled)
+    def set_move_visible(self, visible: bool):
+        self.btn_move.setVisible(visible)
+    def set_move_label(self, text: str):
+        self.btn_move.setText(text)

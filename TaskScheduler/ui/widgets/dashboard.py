@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-08
+ Modified: 2026-10-09
  File: taskscheduler/ui/widgets/dashboard.py
  Version: 1.0.0
  Description: Description of this module
@@ -59,23 +59,26 @@ class DashboardWidget(QWidget, QtLoggerMixin):
         layout.setSpacing(20)
 
         # --- Cron Tasks ---
-        self.cron_table = self._make_table(
-            title="Cron Tasks",
-            headers=["Schedule", "Command", "Comment"]
-        )
-        layout.addWidget(self.cron_table)
+        if self.cron_enable:
+            self.cron_table = self._make_table(
+                title="Cron Tasks",
+                headers=["Schedule", "Command", "Comment"]
+            )
+            layout.addWidget(self.cron_table)
 
         # --- Systemd Tasks ---
-        self.systemd_table = self._make_table(
-            title="Systemd Tasks",
-            headers=["Timer", "Service", "Next Run", "Last Run", "Status"]
-        )
-        layout.addWidget(self.systemd_table)
+        if self.systemd_enable:
+            self.systemd_table = self._make_table(
+                title="Systemd Tasks",
+                headers=["Timer", "Service", "Next Run", "Last Run", "Status"]
+            )
+            layout.addWidget(self.systemd_table)
 
         # --- Environment Variables ---
-        self.env_table = self._make_env_table("Environment Variables")
-        layout.addWidget(self.env_table)
-        self.finalize_logging_wrappers()
+        if self.env_enabled:
+            self.env_table = self._make_env_table("Environment Variables")
+            layout.addWidget(self.env_table)
+            self.finalize_logging_wrappers()
 
     # ---------------------------------------------------------
     # Helper: Create a titled table inside a scrollable QGroupBox
@@ -163,7 +166,7 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
     def apply_distro_rules(self):
         self.cron_enable = (
-            self.features.get("cront", True)
+            self.features.get("cron", {}).get("enabled", True)
             and self.distro.get("supports_cron", True)
         )
         self.systemd_enable = (
