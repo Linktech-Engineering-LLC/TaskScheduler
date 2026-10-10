@@ -6,12 +6,13 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-09
+ Modified: 2026-10-10
  File: taskscheduler/ui/main_window.py
  Version: 1.0.0
  Description: Main Window Orchestrator
 """
 
+import getpass
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QSplitter,
@@ -44,7 +45,7 @@ from .ui.widgets import (
 )
 from PythonTools.gui import QtLoggerMixin
 from PythonTools.net.users import get_valid_users
-
+from PythonTools.sessions import LocalSession, SSHSession
 class MainWindow(QMainWindow, QtLoggerMixin):
     request_close = Signal()
 
@@ -81,7 +82,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.icon_logs = icon("logs.svg")
 
         # --- Managers ---
-        self.cron_manager = CronManager(config=self.config, logctx=self.logctx)
+        self.cron_manager = CronManager(config=self.cron_config, logctx=self.logctx)
         self.env_manager = EnvManager()
         self.host_manager = HostManager()
         self.user_manager = UserManager()
@@ -322,7 +323,12 @@ class MainWindow(QMainWindow, QtLoggerMixin):
     
     def load_user_cron(self, user: str):
         self.active_user = user
-        self.cron_rows = self.cron_manager.load_user_cron(user)
+        self.cron_rows = self.cron_mgr.load_user_cron(
+            user=self.ui.user_selector.currentText(),
+            session=LocalSession(logger=self.logger, sudo_password=self.sudo_password),
+            needs_sudo=(self.ui.user_selector.currentText() != getpass.getuser())
+        )
+
         self.dashboard.set_cron_tasks(self.cron_rows)
 
     def set_host(self, host: str):
@@ -340,7 +346,11 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         user = self.active_user
         scope = self.active_scope
 
-        self.cron_rows = self.cron_manager.load_user_cron(user)
+        self.cron_rows = self.cron_mgr.load_user_cron(
+            user=user,
+            session=LocalSession(logger=self.logger, sudo_password=self.sudo_password),
+            needs_sudo=(self.ui.user_selector.currentText() != getpass.getuser())
+        )
         self.dashboard.set_cron_tasks(self.cron_rows)
 
         systemd_rows = self.systemd_manager.load_timers(user, scope)
@@ -358,7 +368,11 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         scope = self.active_scope
 
         if scope == "user":
-            self.cron_rows = self.cron_manager.load_user_cron(self.active_user)
+            self.cron_rows = self.cron_mgr.load_user_cron(
+            user=getpass.getuser(),
+            session=LocalSession(logger=self.logger, sudo_password=self.sudo_password),
+            needs_sudo=(self.ui.user_selector.currentText() != getpass.getuser())
+        )
         else:
             self.cron_rows = self.cron_manager.load_system_cron()
 
@@ -513,3 +527,61 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.stack.setCurrentWidget(self.systemd_window)
         self.active_editor="systemd"
         self._update_sidebar_editability()
+    def load_cron_for_selected_user(self):
+        """
+        Load cron entries for the user selected in the UI.
+        MainWindow is responsible for:
+        - determining current user (local or remote)
+        - determining selected user
+        - determining whether sudo is required
+        - constructing the correct session (LocalSession or SSHSession)
+        - passing session + needs_sudo into CronManager
+        """
+
+        # 1. Determine selected user from UI
+        selected_user = self.ui.user_selector.currentText()
+
+        # 2. Determine current user (local or remote)
+        if self.remote_mode:
+            session = SSHSession(
+                hostname=self.remote_host,
+                username=self.remote_user,
+                password=self.remote_password,
+                keyfile=self.remote_keyfile,
+                port=self.remote_port,
+                logger=self.logger,
+                sudo_password=self.remote_sudo_password
+            )
+            session.connect()
+            current_user = session.username
+        else:
+            # Local mode
+            current_user = getpass.getuser()
+            session = LocalSession(
+                logger=self.logger,
+                sudo_password=self.sudo_password  # None until security is implemented
+            )
+
+        # 3. Determine whether sudo is required
+        needs_sudo = (selected_user != current_user)
+
+        # 4. Create CronManager
+        cron_mgr = CronManager(
+            config=self.cron_config,
+            logctx=self.logctx
+        )
+
+        # 5. Load cron entries using the correct session + sudo flag
+        try:
+            entries = cron_mgr.load_user_cron(
+                user=selected_user,
+                session=session,
+                needs_sudo=needs_sudo
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to load cron for {selected_user}: {e}")
+            self.show_error(f"Unable to load cron entries for {selected_user}.")
+            return
+
+        # 6. Display cron entries in the UI
+        self.display_cron_entries(entries)

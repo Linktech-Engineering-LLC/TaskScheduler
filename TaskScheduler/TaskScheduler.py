@@ -6,20 +6,22 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-09
+ Modified: 2026-10-10
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
 """
 
-import sys
+import os, sys
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
 from PythonTools.ansible import (
-    load_yaml, GenericInventoryLoader
+    load_yaml, GenericInventoryLoader, 
+    VaultLoader, VaultPathError, VaultPasswordError,
 )
 from PythonTools.log_helpers import LoggerFactory
+from PythonTools.parsing import load_yaml_with_substitution
 from PythonTools.system.env import get_environment
 
 from .main_window import MainWindow
@@ -32,7 +34,8 @@ from TaskScheduler import PROJECTNAME, VERSION
 
 def init_config(logctx):
     config = {}
-    logger = logctx.get("logger")
+    factory = logctx.get("factory")
+    logger = factory.get_logger("Config")
     logger.info("Reading Configuration and Host information")
     yaml = load_yaml(Path("etc/TaskScheduler.yml"))
     distros = GenericInventoryLoader(Path("etc/hosts.yml"),Path("etc/hosts.schema.yml")).load()
@@ -108,7 +111,46 @@ def init_logging():
         "gui": cfg.get("gui", {})
     }
 
+# ---------------------------------------------------------------------------
+# Load Security
+# ---------------------------------------------------------------------------
+def load_security(config: dict, logctx: dict):
+    factory = logctx.get("factory", {})
+    logger = factory.get_logger("Security")
+    cfg = load_yaml_with_substitution("etc/security.yml")
+    security = cfg.get("security", {})
+    vault_cfg = security.get("vault", {})
+    logger.info("Security File Successfully loaded")
+    # These are now the *actual* environment variable names
+    vault_path_env = vault_cfg.get("vault_path_env").upper()
+    password_file_env = vault_cfg.get("password_file_env").upper()
 
+    # Resolve environment variables
+    vault_path = os.getenv(vault_path_env)
+    password_file = os.getenv(password_file_env)
+    logger.info("Security File Successfully Parsed")
+    if not vault_path:
+        raise VaultPathError(f"Environment variable {vault_path_env} not set")
+
+    if not password_file:
+        raise VaultPasswordError(f"Environment variable {password_file_env} not set")
+
+    # Now pass the resolved values directly
+    loader = VaultLoader(
+        vault_file=os.path.expanduser(vault_path),
+        password_source=os.path.expanduser(password_file),
+        program_name=PROJECTNAME
+    )
+    secrets = loader.decrypt_yaml()
+    policy = {
+        "sudo": security.get("sudo", {}),
+        "user_switching": security.get("user_switching", {}),
+        "privilege_escalation": security.get("privilege_escalation", {}),
+        "password_policy": security.get("password_policy", {})
+    }
+    config["security"] = policy
+    config["secrets"] = secrets
+    logger.info("Config loaded with Security Policy and Secrets")
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
@@ -116,7 +158,8 @@ def init_logging():
 def main():
     logctx = init_logging()
     config = init_config(logctx)
-
+    load_security(config=config, logctx=logctx)
+    
     app = QApplication([])
     window = MainWindow(config, logctx)
     window.show()

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-28
- Modified: 2026-10-05
+ Modified: 2026-10-10
  File: taskscheduler/cron_editor.py
  Version: 1.0.0
  Description: Description of this module
@@ -15,7 +15,7 @@
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QPushButton, QLineEdit, QCheckBox, QComboBox,
-    QGroupBox, QFormLayout, QWidget, QSizePolicy
+    QGroupBox, QWidget, QSizePolicy
 )
 from PySide6.QtCore import Qt
 

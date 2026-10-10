@@ -1,0 +1,34 @@
+security:
+  sudo:
+    allow: true
+    require_for_other_users: true
+    prompt_on_demand: true
+    cache_session: false
+    remote_sudo: true
+
+  user_switching:
+    allow: true
+    allowed_users: []     # empty = allow all
+    require_sudo: true
+
+  privilege_escalation:
+    allow: true
+    allow_cron_edit: true
+    allow_systemd_edit: true
+    allow_env_edit: true
+
+  vault:
+    enabled: true
+    vault_path_env: ${PROJECTNAME}_VAULT_PATH
+    password_file_env: ${PROJECTNAME}_VAULT_PASSWORD_FILE
+    encrypton_path_env: ${PROJECTNAME}_ENCRYPTON_PATH
+    encrypton_key_env: ${PROJECTNAME}_ENCRYPTON_KEY_FILE
+
+  paths:
+    ssh_keyfile_env: ${PROJECTNAME}_SSH_KEYFILE
+    sudo_password_file_env: ${PROJECTNAME}_SUDO_PASSWORD_FILE
+
+  password_policy:
+    prompt_timeout_seconds: 120
+    max_attempts: 3
+    lockout_after_failures: false

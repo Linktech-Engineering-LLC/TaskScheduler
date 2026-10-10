@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-09
+ Modified: 2026-10-10
  File: timerdeck/logic/cron_manager.py
  Version: 1.0.0
  Description: Description of this module
@@ -17,30 +17,26 @@ import inspect
 from ..cron import CronEntry
 from TaskScheduler import PROJECTNAME
 from PythonTools.gui import LoggerMixin
-from PythonTools.sessions import LocalSession, SSHSession
 
 class CronManager(LoggerMixin):
     def __init__(self, config: dict | None=None, logctx: dict | None=None):
         self._init_logger(logctx, "CRONMANAGER", PROJECTNAME)
         self.finalize_logging_wrappers()
         self.logger.info("Initializing CronManager")
-    def load_user_cron(self, user: str, ssh_manager=None):
-        # Determine session type
-        session = ssh_manager.session if ssh_manager else LocalSession()
-
+    def load_user_cron(self, user: str, session, needs_sudo=False):
         # Determine current user (local or remote)
-        current_user = getpass.getuser() if ssh_manager is None else ssh_manager.session.user
+        current_user = getattr(session, "username", getpass.getuser())
 
-        # Build correct command
-        if user == current_user:
-            cmd = "crontab -l"
-        else:
-            cmd = f"sudo crontab -u {user} -l"
+        # Build correct command (NO sudo here)
+        cmd = "crontab -l" if user == current_user else f"crontab -u {user} -l"
+
         if self.logctx and self.logctx.get("level") == "DEBUG":
             fname = inspect.stack()[0].function
             self.logger.debug(f"{fname} command = {cmd}")
-        # Run command
-        output = session.run(cmd)
+
+        # Run command — session decides sudo, not CronManager
+        output = session.run(cmd, use_sudo=needs_sudo)
+
         # Parse cron lines
         return self._parse_cron(output.msg)
 
