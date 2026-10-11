@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-10
+ Modified: 2026-10-11
  File: taskscheduler/ui/main_window.py
  Version: 1.0.0
  Description: Main Window Orchestrator
@@ -29,6 +29,7 @@ from .environment import (
     EnvironmentTableModel,
     EnvironmentMode
 )
+from .helpers import distro
 from .logic import (
     CronManager,
     EnvManager,
@@ -59,13 +60,30 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         self.config = config or {}
         self.mode = config.get("mode")
-        self.env = config.get("environment", {})
         self.features = config.get("features", {})
+        self.distro = config.get("distro",{})
+        # --- Capability Flags ---
+        self.can_view_cron = (
+            self.features.get("cron", {}).get("enabled", False)
+            and distro.supports_cron(self.distro)
+        )
+
+        self.can_view_systemd = (
+            self.features.get("systemd", {}).get("enabled", False)
+            and distro.supports_systemd(self.distro)
+        )
+
+        self.can_view_env = (
+            self.features.get("env_manager", {}).get("enabled", False)
+            and distro.supports_env(self.distro)
+        )
+
+        self.env = config.get("environment", {})
+        self.security = config.get("security", {})
         self.cron_config = self.features.get("cron", {}).copy()
         self.gui_cfg = config.get("gui",{})
         self.safety = config.get("safety", {})
         self.install = config.get("install", {})
-        self.distro = config.get("distro",{})
         
         # --- Icons ---
         self.icon_dashboard = icon("dashboard.svg")
@@ -82,7 +100,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.icon_logs = icon("logs.svg")
 
         # --- Managers ---
-        self.cron_manager = CronManager(config=self.cron_config, logctx=self.logctx)
+        self.cron_manager = CronManager(logctx=self.logctx)
         self.env_manager = EnvManager()
         self.host_manager = HostManager()
         self.user_manager = UserManager()
@@ -152,7 +170,11 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         # Dashboard
         self.dashboard = DashboardWidget(self, config=self.config, logctx=self.logctx)
-        self.dashboard.apply_distro_rules()
+        self.dashboard.set_capabilities(
+            cron=self.can_view_cron,
+            systemd=self.can_view_systemd,
+            env=self.can_view_env
+        )
         self.stack.addWidget(self.dashboard)
 
         # Systemd placeholder
@@ -192,13 +214,14 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         # --- Tasks ---
         self.act_view_systemd = QAction(self.icon_systemd_user, "Systemd Tasks", self)
         self.menu_tasks.addAction(self.act_view_systemd)
-        self.act_view_systemd.setEnabled(self.dashboard.systemd_enable)
+        self.act_view_systemd.setEnabled(self.can_view_systemd)
         self.act_view_cron = QAction(self.icon_cron, "Cron Jobs", self)
         self.menu_tasks.addAction(self.act_view_cron)
+        self.act_view_cron.setEnabled(self.can_view_cron)
         self.act_view_cron.setEnabled(self.dashboard.cron_enable)
         self.act_view_env = QAction(self.icon_env, "Environment Variables", self)
         self.menu_tasks.addAction(self.act_view_env)
-        self.act_view_env.setEnabled(self.dashboard.env_enabled)
+        self.act_view_env.setEnabled(self.can_view_env)        
     
         # --- View ---
         self.act_view_dashboard = QAction(self.icon_dashboard, "Dashboard", self)
@@ -323,10 +346,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
     
     def load_user_cron(self, user: str):
         self.active_user = user
-        self.cron_rows = self.cron_mgr.load_user_cron(
-            user=self.ui.user_selector.currentText(),
-            session=LocalSession(logger=self.logger, sudo_password=self.sudo_password),
-            needs_sudo=(self.ui.user_selector.currentText() != getpass.getuser())
+        self.cron_rows = self.cron_manager.load_user_cron(
+            user=self.sidebar.user_selector.currentText(),
+            session=LocalSession(logger=self.logger),
+            needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
         )
 
         self.dashboard.set_cron_tasks(self.cron_rows)
@@ -346,10 +369,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         user = self.active_user
         scope = self.active_scope
 
-        self.cron_rows = self.cron_mgr.load_user_cron(
+        self.cron_rows = self.cron_manager.load_user_cron(
             user=user,
-            session=LocalSession(logger=self.logger, sudo_password=self.sudo_password),
-            needs_sudo=(self.ui.user_selector.currentText() != getpass.getuser())
+            session=LocalSession(logger=self.logger),
+            needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
         )
         self.dashboard.set_cron_tasks(self.cron_rows)
 
@@ -368,10 +391,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         scope = self.active_scope
 
         if scope == "user":
-            self.cron_rows = self.cron_mgr.load_user_cron(
+            self.cron_rows = self.cron_manager.load_user_cron(
             user=getpass.getuser(),
-            session=LocalSession(logger=self.logger, sudo_password=self.sudo_password),
-            needs_sudo=(self.ui.user_selector.currentText() != getpass.getuser())
+            session=LocalSession(logger=self.logger),
+            needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
         )
         else:
             self.cron_rows = self.cron_manager.load_system_cron()
@@ -539,7 +562,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         """
 
         # 1. Determine selected user from UI
-        selected_user = self.ui.user_selector.currentText()
+        selected_user = self.sidebar.user_selector.currentText()
 
         # 2. Determine current user (local or remote)
         if self.remote_mode:
@@ -549,31 +572,21 @@ class MainWindow(QMainWindow, QtLoggerMixin):
                 password=self.remote_password,
                 keyfile=self.remote_keyfile,
                 port=self.remote_port,
-                logger=self.logger,
-                sudo_password=self.remote_sudo_password
+                logger=self.logger
             )
             session.connect()
             current_user = session.username
         else:
             # Local mode
             current_user = getpass.getuser()
-            session = LocalSession(
-                logger=self.logger,
-                sudo_password=self.sudo_password  # None until security is implemented
-            )
+            session = LocalSession(logger=self.logger)
 
         # 3. Determine whether sudo is required
         needs_sudo = (selected_user != current_user)
 
-        # 4. Create CronManager
-        cron_mgr = CronManager(
-            config=self.cron_config,
-            logctx=self.logctx
-        )
-
-        # 5. Load cron entries using the correct session + sudo flag
+        # 4. Load cron entries using the correct session + sudo flag
         try:
-            entries = cron_mgr.load_user_cron(
+            entries = self.cron_manager.load_user_cron(
                 user=selected_user,
                 session=session,
                 needs_sudo=needs_sudo
@@ -583,5 +596,5 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             self.show_error(f"Unable to load cron entries for {selected_user}.")
             return
 
-        # 6. Display cron entries in the UI
+        # 5. Display cron entries in the UI
         self.display_cron_entries(entries)

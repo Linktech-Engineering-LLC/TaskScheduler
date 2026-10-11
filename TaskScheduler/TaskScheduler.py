@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-10
+ Modified: 2026-10-11
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
@@ -38,7 +38,7 @@ def init_config(logctx):
     logger = factory.get_logger("Config")
     logger.info("Reading Configuration and Host information")
     yaml = load_yaml(Path("etc/TaskScheduler.yml"))
-    distros = GenericInventoryLoader(Path("etc/hosts.yml"),Path("etc/hosts.schema.yml")).load()
+    distros = GenericInventoryLoader(Path("etc/distros.yml"),Path("etc/schemas/distros.schema.yml")).load()
     project = yaml.get(PROJECTNAME, {})
     config["mode"] = project["mode"]
     config["environment"] = get_environment()

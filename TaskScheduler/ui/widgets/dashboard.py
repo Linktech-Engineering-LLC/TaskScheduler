@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-09
+ Modified: 2026-10-11
  File: taskscheduler/ui/widgets/dashboard.py
  Version: 1.0.0
  Description: Description of this module
@@ -28,6 +28,9 @@ from PythonTools.gui import QtLoggerMixin
 class DashboardWidget(QWidget, QtLoggerMixin):
     def __init__(self, parent=None, config: dict | None = None, logctx: dict | None = None):
         super().__init__(parent)
+        self.cron_enable = False
+        self.systemd_enable = False
+        self.env_enabled = False
         self._init_logger(logctx, "DASHBOARD", PROJECTNAME)
         self.logger.info("DashboardWidget Initialized.")
 
@@ -53,32 +56,27 @@ class DashboardWidget(QWidget, QtLoggerMixin):
         self.scheduler_caps = SchedulerCapabilities(self.env, self.distro, self.features)
         self.env_vm = EnvironmentViewModel(self.env, self.distro, self.mode)
 
-        self.apply_distro_rules()
-        
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
 
         # --- Cron Tasks ---
-        if self.cron_enable:
-            self.cron_table = self._make_table(
-                title="Cron Tasks",
-                headers=["Schedule", "Command", "Comment"]
-            )
-            layout.addWidget(self.cron_table)
+        self.cron_table = self._make_table(
+            title="Cron Tasks",
+            headers=["Schedule", "Command", "Comment"]
+        )
+        layout.addWidget(self.cron_table)
 
         # --- Systemd Tasks ---
-        if self.systemd_enable:
-            self.systemd_table = self._make_table(
-                title="Systemd Tasks",
-                headers=["Timer", "Service", "Next Run", "Last Run", "Status"]
-            )
-            layout.addWidget(self.systemd_table)
+        self.systemd_table = self._make_table(
+            title="Systemd Tasks",
+            headers=["Timer", "Service", "Next Run", "Last Run", "Status"]
+        )
+        layout.addWidget(self.systemd_table)
 
         # --- Environment Variables ---
-        if self.env_enabled:
-            self.env_table = self._make_env_table("Environment Variables")
-            layout.addWidget(self.env_table)
-            self.finalize_logging_wrappers()
+        self.env_table = self._make_env_table("Environment Variables")
+        layout.addWidget(self.env_table)
+        self.finalize_logging_wrappers()
 
     # ---------------------------------------------------------
     # Helper: Create a titled table inside a scrollable QGroupBox
@@ -164,19 +162,6 @@ class DashboardWidget(QWidget, QtLoggerMixin):
         if self.env_enabled:
             self.env_table.table.setModel(model)
 
-    def apply_distro_rules(self):
-        self.cron_enable = (
-            self.features.get("cron", {}).get("enabled", True)
-            and self.distro.get("supports_cron", True)
-        )
-        self.systemd_enable = (
-            self.features.get("systemd", True)
-            and self.distro.get("supports_systemd", True)
-        )
-        self.env_enabled = (
-            self.features.get("env_manager", False)
-            and self.distro.get("supports_env", False)
-        )
     def clear_environment_model(self):
         # If env_model doesn't exist yet, create an empty one
         if not hasattr(self, "env_model"):
@@ -188,3 +173,11 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
         # Push empty model into the UI
         self.set_environment_model(self.env_model)
+    def set_capabilities(self, cron: bool, systemd: bool, env: bool):
+        self.cron_enable = cron
+        self.systemd_enable = systemd
+        self.env_enabled = env
+
+        self.cron_table.setVisible(cron)
+        self.systemd_table.setVisible(systemd)
+        self.env_table.setVisible(env)
