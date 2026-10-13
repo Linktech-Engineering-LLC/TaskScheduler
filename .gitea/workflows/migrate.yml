@@ -1,7 +1,6 @@
 name: Run Migration
 
 on:
-  #push:
   workflow_dispatch:
 
 jobs:
