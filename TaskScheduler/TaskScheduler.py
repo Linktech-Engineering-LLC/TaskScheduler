@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-11
+ Modified: 2026-10-13
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
@@ -22,7 +22,8 @@ from PythonTools.ansible import (
 )
 from PythonTools.log_helpers import LoggerFactory
 from PythonTools.parsing import load_yaml_with_substitution
-from PythonTools.system.env import get_environment
+from PythonTools.system.env import get_environment, resolve_xdg
+from PythonTools.system.schemas import validate_config
 
 from .main_window import MainWindow
 from TaskScheduler import PROJECTNAME, VERSION
@@ -32,14 +33,14 @@ from TaskScheduler import PROJECTNAME, VERSION
 # Configuration
 # ---------------------------------------------------------------------------
 
-def init_config(logctx):
+def init_config(prjcfg, logctx: dict) -> dict:
     config = {}
-    factory = logctx.get("factory")
+    factory = logctx.get("factory", "")
     logger = factory.get_logger("Config")
     logger.info("Reading Configuration and Host information")
-    yaml = load_yaml(Path("etc/TaskScheduler.yml"))
-    distros = GenericInventoryLoader(Path("etc/distros.yml"),Path("etc/schemas/distros.schema.yml")).load()
-    project = yaml.get(PROJECTNAME, {})
+    distros = load_yaml(Path("etc/distros.yml"))
+    distros = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Distros", distros)
+    project = prjcfg.get(PROJECTNAME, {})
     config["mode"] = project["mode"]
     config["environment"] = get_environment()
     for f in ["features", "gui", "safety", "install"]:
@@ -77,6 +78,42 @@ def init_config(logctx):
     if not isinstance(config["distro"], dict):
         config["distro"] = {}
     logger.info(f"Ready to process Distro: {config['distro']}")
+    # ---------------------------------------------------------------------------
+    # Normalize Distro Configuration
+    # ---------------------------------------------------------------------------
+
+    d = config.get("distro", {})
+
+    # Normalize paths
+    paths = {
+        "cron_tab": d.get("cron_tab_path"),
+        "cron_log": d.get("cron_log_path"),
+        "systemd_units": d.get("systemd_unit_path"),
+        "env_files": d.get("env_files", [])
+    }
+
+    # Normalize binaries
+    binaries = {
+        "crontab": d.get("cron_binaries", {}).get("crontab"),
+        "cron_daemon": d.get("cron_binaries", {}).get("cron_daemon"),
+        "cron_service": d.get("cron_binaries", {}).get("cron_service"),
+        "systemctl": d.get("systemd_binaries", {}).get("systemctl"),
+        "journalctl": d.get("systemd_binaries", {}).get("journalctl")
+    }
+
+    # Normalize distro block
+    config["distro"] = {
+        "supports_cron": d.get("supports_cron", False),
+        "supports_systemd": d.get("supports_systemd", False),
+        "supports_env": d.get("supports_env", False),
+
+        "paths": paths,
+        "binaries": binaries,
+
+        "package_manager": d.get("package_manager")
+    }
+
+    logger.info(f"Distro normalized: {config['distro']}")
     return config
 
 
@@ -84,14 +121,13 @@ def init_config(logctx):
 # Logging
 # ---------------------------------------------------------------------------
 
-def init_logging():
-    cfg = load_yaml(Path("etc/TaskScheduler.yml")).get("logs", {})
+def init_logging(cfg: dict) -> dict:
     log_cfg = {
-        "path": Path(cfg.get("path")) / f"{PROJECTNAME}.log",
+        "path": Path(cfg.get("path", "")) / f"{PROJECTNAME}.log",
         "log_level": cfg.get("level", "INFO"),
-        "log_max_mb": cfg.get("rotation").get("max_size_mb"),
-        "archive_mode": cfg.get("rotation").get("archive_type"),
-        "backup_count": cfg.get("rotation").get("max_files"),
+        "log_max_mb": cfg.get("rotation", {}).get("max_size_mb"),
+        "archive_mode": cfg.get("rotation", {}).get("archive_type"),
+        "backup_count": cfg.get("rotation", {}).get("max_files"),
         "console_stream": sys.stderr,
         "console_enabled": cfg.get("console_enabled", False),
         "color": cfg.get("color_enabled", False),
@@ -114,10 +150,11 @@ def init_logging():
 # ---------------------------------------------------------------------------
 # Load Security
 # ---------------------------------------------------------------------------
-def load_security(config: dict, logctx: dict):
+def load_security(logctx: dict):
     factory = logctx.get("factory", {})
     logger = factory.get_logger("Security")
     cfg = load_yaml_with_substitution("etc/security.yml")
+    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Security", cfg)
     security = cfg.get("security", {})
     vault_cfg = security.get("vault", {})
     logger.info("Security File Successfully loaded")
@@ -148,18 +185,92 @@ def load_security(config: dict, logctx: dict):
         "privilege_escalation": security.get("privilege_escalation", {}),
         "password_policy": security.get("password_policy", {})
     }
-    config["security"] = policy
-    config["secrets"] = secrets
     logger.info("Config loaded with Security Policy and Secrets")
+    return {
+        "security": policy,
+        "secrets": secrets
+    }
+# ---------------------------------------------------------------------------
+# Load Users
+# ---------------------------------------------------------------------------
+def load_users_cfg(config: dict, logctx: dict):
+    factory = logctx.get("factory", {})
+    logger = factory.get_logger("USER_CFG")
+
+    paths = config.get("paths", {})
+
+    # Resolve XDG roots
+    data_root = resolve_xdg("XDG_DATA_HOME",
+                            paths.get("data_root"),
+                            "~/.local/share/taskscheduler")
+
+    cache_root = resolve_xdg("XDG_CACHE_HOME",
+                             paths.get("temp_root"),
+                             "~/.cache/taskscheduler")
+
+    config_home = resolve_xdg("XDG_CONFIG_HOME",
+                              paths.get("config_root"),
+                              "~/.config/taskscheduler")
+
+    # Users file location
+    users_file = Path(config_home) / "users.yml"
+
+    if not users_file.exists():
+        logger.info(f"No users.yml found at {users_file}, skipping user config.")
+        return {
+            "users": {},
+            "paths": {
+                "data_root": data_root,
+                "cache_root": cache_root,
+                "config_home": config_home
+            }
+        }
+
+    logger.info(f"Loading users.yml from {users_file}")
+
+    # Load YAML
+    users_cfg = load_yaml(users_file)
+
+    # Optional: validate against a Users.json schema if you create one
+    try:
+        users_cfg = validate_config(
+            PROJECTNAME.lower() if PROJECTNAME else "taskscheduler",
+            "Users",
+            users_cfg
+        )
+        logger.info("Users.yml validated successfully.")
+    except Exception as e:
+        logger.error(f"Users.yml validation failed: {e}")
+        # Fail-safe: still load raw config
+        # (You can choose to raise instead)
+        pass
+
+    # Normalize user config
+    users = users_cfg.get("users", {}) if isinstance(users_cfg, dict) else {}
+
+    logger.info(f"Users loaded: {list(users.keys())}")
+
+    return {
+        "users": users,
+        "paths": {
+            "data_root": data_root,
+            "cache_root": cache_root,
+            "config_home": config_home
+        }
+    }
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
 def main():
-    logctx = init_logging()
-    config = init_config(logctx)
-    load_security(config=config, logctx=logctx)
-    
+    cfg = load_yaml(Path("etc/Project.yml"))
+    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Project", cfg)
+    logctx = init_logging(cfg.get("logs", {}))
+    config = init_config(cfg, logctx)
+    policy = load_security(logctx=logctx)
+    config["security"] = policy.get("security", {})
+    config["secrets"] = policy.get("secrets", {})
+    config["users"] = load_users_cfg(config=config, logctx=logctx)
     app = QApplication([])
     window = MainWindow(config, logctx)
     window.show()

@@ -1,0 +1,35 @@
+name: Run Migration
+
+on:
+  workflow_dispatch:   # manual trigger only
+
+jobs:
+  migrate:
+    runs-on: [leap15.6]   # your self-hosted runner label
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3git s
+      - name: Set up Python 3.12
+        run: |
+          sudo zypper install -y python312 python312-pip
+          python3.12 -m pip install --upgrade pip
+
+      - name: Install dependencies
+        run: |
+          python3.12 -m pip install -r requirements.txt
+
+      - name: Run migration
+        run: |
+          python3.12 tools/migrate.py
+
+      - name: Commit changes (if any)
+        run: |
+          git config user.name "Gitea Actions"
+          git config user.email "actions@gitea.local"
+          git add -A
+          git commit -m "Automated migration run" || echo "No changes to commit"
+
+      - name: Push changes
+        run: |
+          git push

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-11
+ Modified: 2026-10-13
  File: timerdeck/logic/cron_manager.py
  Version: 1.0.0
  Description: Description of this module
@@ -19,10 +19,12 @@ from TaskScheduler import PROJECTNAME
 from PythonTools.gui import LoggerMixin
 
 class CronManager(LoggerMixin):
-    def __init__(self, logctx: dict | None=None):
+    def __init__(self, config: dict | None=None, logctx: dict | None=None):
+        self.config = config or {}
         self._init_logger(logctx, "CRONMANAGER", PROJECTNAME)
         self.finalize_logging_wrappers()
         self.logger.info("Initializing CronManager")
+
     def load_user_cron(self, user: str, session, needs_sudo=False):
         # Determine current user (local or remote)
         current_user = getattr(session, "username", getpass.getuser())

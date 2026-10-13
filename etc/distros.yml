@@ -3,54 +3,105 @@ linux:
     supports_systemd: true
     supports_cron: true
     supports_env: true
+
     cron_tab_path: /var/spool/cron/crontabs/{user}
     cron_log_path: /var/log/syslog
+    cron_binaries:
+      crontab: /usr/bin/crontab
+      cron_daemon: cron
+      cron_service: cron
+
     systemd_unit_path: /etc/systemd/system
+    systemd_binaries:
+      systemctl: /usr/bin/systemctl
+      journalctl: /usr/bin/journalctl
+
     env_files:
       - /etc/environment
       - ~/.profile
+
     package_manager: apt
 
   redhat:
     supports_systemd: true
     supports_cron: true
     supports_env: true
+
     cron_tab_path: /var/spool/cron/{user}
     cron_log_path: /var/log/cron
+    cron_binaries:
+      crontab: /usr/bin/crontab
+      cron_daemon: crond
+      cron_service: crond
+
     systemd_unit_path: /usr/lib/systemd/system
+    systemd_binaries:
+      systemctl: /usr/bin/systemctl
+      journalctl: /usr/bin/journalctl
+
     env_files:
       - /etc/environment
       - ~/.bash_profile
+
     package_manager: dnf
 
   suse:
-    supports_systemd: false
+    supports_systemd: true
     supports_cron: true
-    supports_env: false
+    supports_env: true
+
     cron_tab_path: /var/spool/cron/tabs/{user}
     cron_log_path: /var/log/messages
+    cron_binaries:
+      crontab: /usr/bin/crontab
+      cron_daemon: cron
+      cron_service: cron
+
     systemd_unit_path: /usr/lib/systemd/system
+    systemd_binaries:
+      systemctl: /usr/bin/systemctl
+      journalctl: /usr/bin/journalctl
+
     env_files:
       - /etc/environment
       - ~/.bashrc
+
     package_manager: zypper
 
   arch:
     supports_systemd: true
     supports_cron: true
     supports_env: true
+
     cron_tab_path: /var/spool/cron/{user}
     cron_log_path: /var/log/cron.log
+    cron_binaries:
+      crontab: /usr/bin/crontab
+      cron_daemon: cronie
+      cron_service: cronie
+
     systemd_unit_path: /etc/systemd/system
+    systemd_binaries:
+      systemctl: /usr/bin/systemctl
+      journalctl: /usr/bin/journalctl
+
     env_files:
       - /etc/environment
       - ~/.bash_profile
+
     package_manager: pacman
+
 windows:
   win10:
     supports_systemd: false
     supports_cron: false
+    supports_env: false
+
 macos:
   ventura:
     supports_systemd: false
     supports_cron: true
+    cron_binaries:
+      crontab: /usr/bin/crontab
+      cron_daemon: periodic
+      cron_service: periodic

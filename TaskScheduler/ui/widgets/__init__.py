@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-10-13
  File: taskscheduler/ui/widgets/__init__.py
  Version: 1.0.0
  Description: Description of this module
@@ -14,12 +14,14 @@
 
 from .cards import make_card, icon
 from .cron_table import CronTableWidget
+from .environment import EnvironmentWidget
 from .dashboard import DashboardWidget
 from .sidebar import SidebarWidget
 
 __all__ = [
     "CronTableWidget",
     "DashboardWidget",
+    "EnvironmentWidget",
     "icon",
     "make_card",
     "SidebarWidget"

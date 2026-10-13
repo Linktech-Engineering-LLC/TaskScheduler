@@ -1,5 +1,5 @@
-# TaskScheduler
-Operator‑grade scheduling and environment management utilities for Linux (systemd + cron).
+# TaskScheduler — Deterministic Scheduling & Environment Management
+Operator‑grade GUI for managing systemd timers, cron jobs, environment variables, and remote hosts, built with deterministic refresh cycles and strict security invariants.
 
 **Suite:** Linktech Engineering Tools Suite  
 **Maintainer:** Leon McClatchey, Linktech Engineering LLC  
@@ -22,169 +22,208 @@ Operator‑grade scheduling and environment management utilities for Linux (syst
 
 ## Table of Contents
 1. [Overview](#1-overview)
-2. [Features](#2-features)
-3. [Planned Capabilities](#3-planned-capabilities)
-4. [Project Status](#4-project-status)
-5. [Roadmap](#5-roadmap)
-6. [Development](#6-development)
-7. [Contributing](#7-contributing)
-8. [License](#8-license)
+2. [Architecture](#2-architecture)
+3. [Configuration System (YAML + JSON Schema)](#3-configuration-system-yaml--json-schema)
+4. [Features](#4-features)
+5. [Remote Operations](#5-remote-operations)
+6. [Security Model](#6-security-model)
+7. [Development](#7-development)
+8. [Roadmap](#8-roadmap)
 9. [Related Projects](#9-related-projects)
 10. [Documentation Index](#10-documentation-index)
+11. [License](#11-license)
 
 ---
 
 ## 1. Overview
-**TaskScheduler** is an operator‑grade desktop GUI for inspecting, editing, and managing **systemd timers**, **cron jobs**, and **environment variables** on Linux systems.
-It provides a unified interface for viewing scheduled tasks, understanding execution history, and modifying configurations without relying on command‑line tooling.
+TaskScheduler provides a unified, deterministic interface for viewing and managing scheduled tasks across Linux systems. It integrates:
+* **systemd timers**
+* **cron jobs**
+* **environment variables**
+* **logs**
+* **remote hosts (SSH)**
 
-TaskScheduler is part of the **Linktech Engineering Tools Suite**, designed for deterministic, operator‑focused system management.
+The application is built around operator‑grade principles: predictable behavior, explicit state transitions, deterministic refresh cycles, and strict privilege boundaries.
 
----
+--- 
 
-## 2. Features
-* Unified dashboard for cron, systemd, environment variables, and logs
-* Operator‑grade menu system:
-    * **Tasks**: Systemd Tasks · Cron Jobs · Environment Variables
-    * **View**: Dashboard · Logs
-* Deterministic sidebar context selector:
-    * Scope (User/System)
-    * User selection (User scope only)
-    * Password entry (System scope or user mismatch)
-    * Remote/Local mode
-    * Host selection (Remote only)
-* Interactive column resizing with horizontal scrolling
-* Systemd timer parsing (next/last run, unit linkage)
-* Cron parsing with:
-    * inline comments
-    * preceding comments (Kcron‑style)
-    * multi‑line comment accumulation
-* Systemd comment support:
-    * preceding comment lines in unit files
-    * inline comments
-    * Description= fallback
-* Dedicated editor windows for:
-    * Cron entries
-    * Systemd timers
-    * Environment variables
-* Cross‑system move operations:
-    * Cron ↔ Systemd
-    * Env ↔ Cron/Systemd
-* Deterministic parsing and refresh behavior
-* Remote host support (SSH config parsing)
+## 2. Architecture
+TaskScheduler uses a layered architecture:
+
+### UI Layer (PySide6)
+* MainWindow
+* Sidebar (scope, user, password, remote mode, host selection)
+* Stacked views (Dashboard, Systemd, Cron, Env, Logs)
+* Editor windows for each subsystem
+
+### Core Layer
+* Systemd Manager
+* Cron Manager
+* Environment Manager
+* Orchestrator (deterministic refresh pipeline)
+* Security & privilege model
+* Remote execution model
+
+### Data Layer
+* Structured parsers for systemd, cron, and environment files
+* Deterministic comment extraction
+* Log viewer pipeline
+* Config loaders (YAML + JSON Schema)
 
 ---
 
-## 3. Planned Capabilities
-* View systemd timers, units, and next/last run times
-* Inspect associated service units and execution results
-* Manage both user and system‑level timers
-* View and edit cron jobs
-* Unified environment variable management
-* Privilege‑aware operations with on‑demand elevation
-* SSH/remote host support (planned)
+## 3. Configuration System (YAML + JSON Schema)
+TaskScheduler now uses a **strict schema‑validated configuration pipeline**:
+
+### Project.yml → Project.json
+Defines:
+* mode
+* features
+* GUI behavior
+* safety rules
+* install mode
+* logging configuration
+* paths
+
+### distros.yml → Distros.json
+Defines OS capability matrix:
+* supports_cron
+* supports_systemd
+* supports_env
+* cron/systemd paths
+* binaries
+* package manager
+
+### Security.yml → Security.json
+Defines:
+* sudo rules
+* user switching rules
+* privilege escalation
+* vault configuration
+* password policy
+
+### Users.yml → Users.json (planned)
+Defines:
+* per‑user settings
+* remote host associations
+* privilege overrides
+
+All configuration files are validated at startup using JSON Schema Draft‑2020‑12.
 
 ---
 
-## 4. Project Status
-TaskScheduler is under active development.
-Current focus: **Phase‑2 architecture refactor and data integration**, including:
-* Complete menu redesign (Tasks/View separation)
-* Sidebar simplification (context‑only, no navigation)
-* Frame‑based visibility logic for scope/user/password/remote
-* Logs view integration
-* Systemd/Cron/Env editor window foundations
-* Deterministic refresh orchestration
-* Remote host enumeration via ~/.ssh/config
+## 4. Features
+TaskScheduler provides:
+
+### Unified Dashboard
+* systemd timers
+* cron jobs
+* environment variables
+* logs
+
+### Deterministic Sidebar
+* Scope (User/System)
+* User selection
+* Password entry (system scope or user mismatch)
+* Remote mode toggle
+* Host selection
+
+### Subsystem Editors
+* Cron editor
+* Systemd timer editor
+* Environment variable editor
+
+### Parsing Features
+* Inline + preceding comments (cron + systemd)
+* Multi‑line comment accumulation
+* Description fallback for systemd
+
+### Cross‑System Operations
+* Cron ↔ Systemd
+* Env ↔ Cron/Systemd
+
+### Remote Host Support
+* SSH config parsing
+* Remote cron/systemd/env operations
+* Deterministic remote execution pipeline
 
 ---
 
-## 5. Roadmap
-### 5.1 Phase 1 — Core UI Foundation (Complete)
-* Project structure and repository initialization
-* Main window, sidebar navigation, stacked views
-* Dashboard layout and icon system
-* Initial documentation
+## 5. Remote Operations
+Remote operations follow the rules defined in [Remote.md](docs/security/Remote.md):
+* SSH‑based execution only
+* No plaintext transport
+* No persistent sessions
+* Deterministic command execution
+* Vault / Encrypton / SSH key authentication
+* Remote cron/systemd/env management
 
-### 5.2 Phase 2 — Data Integration (Current)
-* Systemd timer enumeration (user + system)
-* Cron job parsing (inline + preceding comments)
-* Environment variable extraction
-* Dashboard + Logs view integration
-* Menu refactor (Tasks/View)
-* Sidebar refactor (context selector only)
-* Password logic (system scope + user mismatch)
-* Remote host support (SSH config parsing)
-* Orchestrator conversion
-
-### 5.3 Phase 3 — Interaction & Management
-* Timer/service detail views
-* Cron/Systemd/Env editor windows
-* Move operations between systems
-* Start/stop/reload actions
-* Privilege‑aware operations (sudo/pkexec)
-* Log viewer enhancements (filtering, search, export)
-
-#### 5.4 Phase 4 — Advanced Features
-* Search and filtering across timers and units
-* Failure diagnostics and log extraction
-* Exportable reports (JSON/YAML)
-* SSH remote host support (full)
-
-### 5.5 Phase 5 — Polish & Release
-* Dark‑mode palette and icon variants
-* Hover/active states and animations
-* Packaging (AppImage, Flatpak, DEB, RPM, TGZ, ZIP)
-* v1.0 release
+Remote mode integrates seamlessly with the sidebar and password model.
 
 ---
 
-## 6. Development
-### 6.1 Requirements
+## 6. Security Model
+Security follows the invariants defined in [Passwords.md](/docs/security/Passwords.md) and **Security.json**:
+* Passwords never logged
+* Passwords never retained longer than necessary
+* Passwords never written to disk unless encrypted
+* Vault + Encrypton support
+* Plaintext only allowed with strict permissions
+* System‑scope operations always require authentication
+* All password handling goes through PasswordManager
+* Remote passwords transmitted only over SSH
+
+Privilege escalation is deterministic and explicit.
+
+---
+
+## 7. Development
+### Requirements
 * Python 3.12+
 * PySide6
-* Access to `systemctl` and `journalctl`
-* Linux environment (desktop or VM)
+* Access to systemctl, journalctl, crontab
 
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-### 6.2 Running the Application
-From the project root:
-
+### Running
 ```bash
 python -m timerdeck
 ```
-Or:
 
-```bash
-python TimerDeck.py
-```
-
-### 6.3 Project Structure
-```text
+### Project Structure
+```Code
 timerdeck/
- ├─ ui/               # Qt UI components, icons, styles
- ├─ core/             # Application logic and helpers
- ├─ data/             # systemd/cron/env parsing modules
- ├─ resources/        # stylesheets, themes
- └─ tests/            # unit tests
+ ├─ ui/
+ ├─ core/
+ ├─ data/
+ ├─ resources/
+ └─ tests/
 ```
 
 ---
 
-## 7. Contributing
-Contributions are welcome once the core architecture stabilizes.
-Issues and pull requests should align with the roadmap phases and maintain deterministic, operator‑grade behavior.
+## 8. Roadmap
+### Phase 2 (Current)
+* Data integration
+* Sidebar refactor
+* Password logic
+* Remote host enumeration
+* Orchestrator conversion
 
----
+### Phase 3
+* Editor windows
+* Move operations
+* Privilege‑aware actions
+* Log viewer enhancements
 
-## 8. License
-TimerDeck is released under the MIT License.
-See the [LICENSE](LICENSE) file for full details.
+### Phase 4
+* Diagnostics
+* Search/filtering
+* Full SSH remote support
+
+### Phase 5
+* Dark mode
+* Packaging
+
+v1.0 release
 
 ---
 
@@ -325,3 +364,9 @@ High‑level architectural overview of TaskScheduler, including:
     * Packaging architecture
 
 This document defines the invariants that keep TaskScheduler deterministic, predictable, and operator‑grade.
+
+---
+
+## 11. License
+TaskScheduler is released under the MIT License.
+See the [LICENSE](LICENSE) file for full details.

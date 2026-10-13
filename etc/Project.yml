@@ -95,3 +95,11 @@ logs:
   gui:
     default_view: task_scheduler
     allow_path_edit: true
+paths:
+  config_root: ~/.config/taskscheduler
+  data_root: ~/.local/share/taskscheduler
+  temp_root: ~/.cache/taskscheduler
+  export_root: ~/exports
+  portable_root: null
+  plugins: ~/.local/share/taskscheduler/plugins
+  backups: ~/backups/taskscheduler

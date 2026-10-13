@@ -1,0 +1,35 @@
+config:
+  mode: str
+  environment: dict
+
+  features:
+    cron: dict
+    systemd: dict
+    env_manager: dict
+
+  distro:
+    supports_cron: bool
+    supports_systemd: bool
+    supports_env: bool
+
+    paths:
+      cron_tab: str
+      cron_log: str
+      systemd_units: str
+      env_files: list[str]
+
+    binaries:
+      crontab: str
+      cron_daemon: str
+      cron_service: str
+      systemctl: str
+      journalctl: str
+
+    package_manager: str
+
+  paths: dict
+  safety: dict
+  install: dict
+
+  security: dict
+  secrets: dict

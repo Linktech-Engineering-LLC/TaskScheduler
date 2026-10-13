@@ -6,18 +6,18 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-11
+ Modified: 2026-10-13
  File: taskscheduler/ui/main_window.py
- Version: 1.0.0
- Description: Main Window Orchestrator
+ Version: 1.0.1
+ Description: Main Window Orchestrator (Cleaned)
 """
 
 import getpass
 
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QSplitter,
-    QStackedWidget, QLabel, QMessageBox, 
-    QDockWidget, QTableWidgetItem
+    QStackedWidget, QLabel, QMessageBox,
+    QDockWidget
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
@@ -42,65 +42,55 @@ from .ui.widgets import icon
 from .ui.widgets import (
     CronTableWidget,
     DashboardWidget,
-    SidebarWidget
+    SidebarWidget,
+    EnvironmentWidget  # ⭐ You will need this widget
 )
 from PythonTools.gui import QtLoggerMixin
-from PythonTools.net.users import get_valid_users
 from PythonTools.sessions import LocalSession, SSHSession
+
+
 class MainWindow(QMainWindow, QtLoggerMixin):
     request_close = Signal()
 
     def __init__(self, config: dict, logctx: dict | None = None):
         super().__init__()
-        
+
         self._init_logger(logctx, "GUI", PROJECTNAME)
         self.logger.info("MainWindow Initialized.")
+
+        # --- State ---
         self.cron_rows = []
         self.active_editor = None
+        self.active_view = "dashboard"
+        self.remote_mode = False
+        self.active_host = ""
 
+        # --- Config ---
         self.config = config or {}
         self.mode = config.get("mode")
         self.features = config.get("features", {})
-        self.distro = config.get("distro",{})
+        self.distro = config.get("distro", {})
+        self.cron_config = self.features.get("cron", {}).copy
+
         # --- Capability Flags ---
         self.can_view_cron = (
             self.features.get("cron", {}).get("enabled", False)
             and distro.supports_cron(self.distro)
         )
-
         self.can_view_systemd = (
             self.features.get("systemd", {}).get("enabled", False)
             and distro.supports_systemd(self.distro)
         )
-
         self.can_view_env = (
             self.features.get("env_manager", {}).get("enabled", False)
             and distro.supports_env(self.distro)
         )
 
-        self.env = config.get("environment", {})
-        self.security = config.get("security", {})
-        self.cron_config = self.features.get("cron", {}).copy()
-        self.gui_cfg = config.get("gui",{})
-        self.safety = config.get("safety", {})
-        self.install = config.get("install", {})
-        
-        # --- Icons ---
-        self.icon_dashboard = icon("dashboard.svg")
-        self.icon_systemd_user = icon("systemd-user.svg")
-        self.icon_systemd_system = icon("systemd-system.svg")
-        self.icon_cron = icon("cron.svg")
-        self.icon_env = icon("env.svg")
-        self.icon_logs = icon("logs.svg")  # placeholder for future
-        self.icon_close = icon("exit.svg")
-        self.icon_settings = icon("settings.svg")
-        self.icon_reload = icon("refresh.svg")
-        self.icon_help = icon("help.svg")
-        self.icon_about = icon("about.svg")
-        self.icon_logs = icon("logs.svg")
-
         # --- Managers ---
-        self.cron_manager = CronManager(logctx=self.logctx)
+        self.cron_manager = CronManager(
+            config=self.cron_config,
+            logctx=self.logctx
+        )
         self.env_manager = EnvManager()
         self.host_manager = HostManager()
         self.user_manager = UserManager()
@@ -108,12 +98,23 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.env_controller = EnvironmentController()
         self.env_model = EnvironmentTableModel([])
 
-        # --- State ---
+        # --- Active User ---
+        users = self.user_manager.get_users()
+        self.active_user = users[0] if users else getpass.getuser()
         self.active_scope = "user"
-        self.active_user = self.user_manager.get_users()[0] if self.user_manager.get_users() else ""
-        self.remote_mode = False
-        self.active_host = ""
-        self.active_view = "dashboard"
+
+        # --- Icons ---
+        self.icon_dashboard = icon("dashboard.svg")
+        self.icon_systemd_user = icon("systemd-user.svg")
+        self.icon_systemd_system = icon("systemd-system.svg")
+        self.icon_cron = icon("cron.svg")
+        self.icon_env = icon("env.svg")
+        self.icon_close = icon("exit.svg")
+        self.icon_settings = icon("settings.svg")
+        self.icon_reload = icon("refresh.svg")
+        self.icon_help = icon("help.svg")
+        self.icon_about = icon("about.svg")
+        self.icon_logs = icon("logs.svg")
 
         # --- Window Setup ---
         title = f"{PROJECTNAME} v{VERSION}"
@@ -141,16 +142,16 @@ class MainWindow(QMainWindow, QtLoggerMixin):
     # ============================================================
     def _build_ui(self):
         menubar = self.menuBar()
-       # --- Top-level menus ---
+
+        # Menus
         self.menu_file = menubar.addMenu("&File")
         self.menu_tasks = menubar.addMenu("&Tasks")
         self.menu_view = menubar.addMenu("&View")
         self.menu_help = menubar.addMenu("&Help")
 
-        # --- Main Splitter ---
         splitter = QSplitter(Qt.Horizontal)
 
-        # --- Sidebar ---
+        # Sidebar
         self.sidebar = SidebarWidget(
             users=self.user_manager.get_users(),
             hosts=self.host_manager.get_hosts(),
@@ -161,11 +162,11 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         dock = QDockWidget("Sidebar", self)
         dock.setWidget(self.sidebar)
-        dock.setTitleBarWidget(QWidget())  # hide title bar
+        dock.setTitleBarWidget(QWidget())
         dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
-        # --- Main Content Stack ---
+        # Main Stack
         self.stack = QStackedWidget()
 
         # Dashboard
@@ -178,31 +179,34 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.stack.addWidget(self.dashboard)
 
         # Systemd placeholder
-        self.systemd_placeholder = QLabel(
-            "Systemd Tasks\n\nSystemd task management will appear here."
-        )
+        self.systemd_placeholder = QLabel("Systemd Tasks\n\nSystemd task management will appear here.")
         self.systemd_placeholder.setAlignment(Qt.AlignCenter)
         self.stack.addWidget(self.systemd_placeholder)
 
         # Cron Table
-        self.cron_table = CronTableWidget(config=self.cron_config, logctx=self.logctx)
+        self.cron_table = CronTableWidget(config=self.features.get("cron", {}), logctx=self.logctx)
         self.stack.addWidget(self.cron_table)
+
+        # Environment View ⭐
+        self.env_view = EnvironmentWidget(self.env_model, logctx=self.logctx)
+        self.stack.addWidget(self.env_view)
 
         splitter.addWidget(self.stack)
         self.setCentralWidget(splitter)
 
+        # View Indexes
         self.VIEW_DASHBOARD = 0
-        self.VIEW_SYSTEMD = self.stack.indexOf(self.systemd_placeholder)
+        self.VIEW_SYSTEMD = 1
         self.VIEW_CRON = 2
-        
+        self.VIEW_ENV = 3
+
         self.logger.info("MainWindow UI built successfully.")
 
     # ============================================================
     # Actions
     # ============================================================
     def _create_actions(self):
-
-        # --- File ---
+        # File
         self.act_settings = QAction(self.icon_settings, "Settings", self)
         self.act_reload = QAction(self.icon_reload, "Reload All", self)
         self.act_exit = QAction(self.icon_close, "Exit", self)
@@ -211,31 +215,30 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.menu_file.addSeparator()
         self.menu_file.addAction(self.act_exit)
 
-        # --- Tasks ---
+        # Tasks
         self.act_view_systemd = QAction(self.icon_systemd_user, "Systemd Tasks", self)
         self.menu_tasks.addAction(self.act_view_systemd)
         self.act_view_systemd.setEnabled(self.can_view_systemd)
+
         self.act_view_cron = QAction(self.icon_cron, "Cron Jobs", self)
         self.menu_tasks.addAction(self.act_view_cron)
         self.act_view_cron.setEnabled(self.can_view_cron)
-        self.act_view_cron.setEnabled(self.dashboard.cron_enable)
+
         self.act_view_env = QAction(self.icon_env, "Environment Variables", self)
         self.menu_tasks.addAction(self.act_view_env)
-        self.act_view_env.setEnabled(self.can_view_env)        
-    
-        # --- View ---
+        self.act_view_env.setEnabled(self.can_view_env)
+
+        # View
         self.act_view_dashboard = QAction(self.icon_dashboard, "Dashboard", self)
         self.menu_view.addAction(self.act_view_dashboard)
-        # 2. Logs submenu SECOND
-        self.menu_logs = self.menu_view.addMenu("Logs")
-        self.action_view_ts_logs = QAction(self.icon_logs, "TaskScheduler Logs", self)
-        self.action_view_cron_logs = QAction(self.icon_logs, "Cron Logs", self)
-        self.action_view_systemd_logs = QAction(self.icon_logs, "Systemd Logs", self)
 
-        self.menu_logs.addAction(self.action_view_ts_logs)
-        self.menu_logs.addAction(self.action_view_cron_logs)
-        self.menu_logs.addAction(self.action_view_systemd_logs)
-        # --- Help ---
+        # Logs submenu
+        self.menu_logs = self.menu_view.addMenu("Logs")
+        self.menu_logs.addAction(QAction(self.icon_logs, "TaskScheduler Logs", self))
+        self.menu_logs.addAction(QAction(self.icon_logs, "Cron Logs", self))
+        self.menu_logs.addAction(QAction(self.icon_logs, "Systemd Logs", self))
+
+        # Help
         self.act_about = QAction(self.icon_about, "About", self)
         self.act_docs = QAction(self.icon_help, "Documentation", self)
         self.menu_help.addAction(self.act_about)
@@ -261,65 +264,24 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         # Help
         self.act_about.triggered.connect(self.show_about_dialog)
         self.act_docs.triggered.connect(self.open_docs_page)
-        
-        # Row Signals
-        self.cron_table.itemDoubleClicked.connect(self.on_cron_row_double_clicked)
+
+        # Sidebar
         self.sidebar.newRequested.connect(self.on_new_requested)
         self.sidebar.editRequested.connect(self.on_edit_requested)
         self.sidebar.deleteRequested.connect(self.on_delete_requested)
         self.sidebar.refreshRequested.connect(self.on_refresh_requested)
 
-    def _update_sidebar_editability(self):
-        editor = self.active_editor
-
-        match editor:
-            case "cron":
-                editable = self.features.get("cron", {}).get("editable", True)
-                self.sidebar.set_actions_enabled(editable)
-
-                move_enabled = (
-                    self.features.get("systemd", {}).get("enabled", False)
-                    and self.distro.get("supports_systemd", True)
-                )
-                self.sidebar.set_move_enabled(move_enabled)
-                self.sidebar.set_move_visible(True)
-                self.sidebar.set_move_label("Move to Systemd")
-
-            case "systemd":
-                editable = self.features.get("systemd", {}).get("editable", True)
-                self.sidebar.set_actions_enabled(editable)
-
-                move_enabled = (
-                    self.features.get("cron", {}).get("enabled", False)
-                    and self.distro.get("supports_cron", True)
-                )
-                self.sidebar.set_move_enabled(move_enabled)
-                self.sidebar.set_move_visible(True)
-                self.sidebar.set_move_label("Move to Cron")
-
-            case "env":
-                editable = self.features.get("env", {}).get("editable", True)
-                self.sidebar.set_actions_enabled(editable)
-                self.sidebar.set_move_enabled(False)
-                self.sidebar.set_move_visible(False)
-            case _:
-                # Unknown editor type — safest fallback
-                self.sidebar.set_actions_enabled(False)
-                self.sidebar.set_move_enabled(False)
+        # Cron table
+        self.cron_table.itemDoubleClicked.connect(self.on_cron_row_double_clicked)
 
     # ============================================================
     # View Switching
     # ============================================================
-    
     def show_view(self, view: str):
         self.active_view = view
 
-        # Sidebar button visibility logic
-        if view == "dashboard":
-            self.sidebar.set_actions_visible(False)
-        else:
-            self.sidebar.set_actions_visible(True)
-        
+        self.sidebar.set_actions_visible(view != "dashboard")
+
         match view:
             case "dashboard":
                 self.refresh_dashboard()
@@ -329,54 +291,48 @@ class MainWindow(QMainWindow, QtLoggerMixin):
                 self.open_systemd_tasks()
 
             case "cron":
-                self.stack.setCurrentIndex(self.VIEW_CRON)
                 self.show_cron()
+
             case "env":
                 self.stack.setCurrentIndex(self.VIEW_ENV)
-                self.active_editor="env"
+                self.active_editor = "env"
                 self._update_sidebar_editability()
 
-            case _:
-                # Optional: fallback
-                self.stack.setCurrentIndex(0)
-
     # ============================================================
-    # Sidebar Callbacks
+    # Cron View
     # ============================================================
-    
-    def load_user_cron(self, user: str):
-        self.active_user = user
-        self.cron_rows = self.cron_manager.load_user_cron(
-            user=self.sidebar.user_selector.currentText(),
-            session=LocalSession(logger=self.logger),
-            needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
-        )
+    def show_cron(self):
+        scope = self.active_scope
 
-        self.dashboard.set_cron_tasks(self.cron_rows)
+        if scope == "user":
+            self.cron_rows = self.cron_manager.load_user_cron(
+                user=getpass.getuser(),
+                session=LocalSession(logger=self.logger),
+                needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
+            )
+        else:
+            self.cron_rows = self.cron_manager.load_system_cron()
 
-    def set_host(self, host: str):
-        self.active_host = host
-
-    def update_remote_mode(self, remote: bool):
-        self.remote_mode = remote
-        self.host_manager.set_remote_mode(remote)
+        self.cron_table.populate(self.cron_rows)
+        self.stack.setCurrentIndex(self.VIEW_CRON)
+        self.active_editor = "cron"
+        self._update_sidebar_editability()
 
     # ============================================================
     # Dashboard Refresh
     # ============================================================
-    
     def refresh_dashboard(self):
         user = self.active_user
-        scope = self.active_scope
+        needs_sudo = (self.sidebar.user_selector.currentText() != getpass.getuser())
 
         self.cron_rows = self.cron_manager.load_user_cron(
             user=user,
             session=LocalSession(logger=self.logger),
-            needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
+            needs_sudo=needs_sudo
         )
         self.dashboard.set_cron_tasks(self.cron_rows)
 
-        systemd_rows = self.systemd_manager.load_timers(user, scope)
+        systemd_rows = self.systemd_manager.load_timers(user, self.active_scope)
         self.dashboard.set_systemd_tasks(systemd_rows)
 
         entries = self.env_controller.load_environment(EnvironmentMode.USER)
@@ -384,28 +340,134 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.dashboard.set_environment_model(self.env_model)
 
     # ============================================================
-    # Cron View
+    # Sidebar Callbacks
     # ============================================================
-    
-    def show_cron(self):
-        scope = self.active_scope
+    def on_cron_row_double_clicked(self, item):
+        row = item.row()
+        self.cron_table.selectRow(row)
+        self.edit_cron_job()
 
-        if scope == "user":
-            self.cron_rows = self.cron_manager.load_user_cron(
-            user=getpass.getuser(),
-            session=LocalSession(logger=self.logger),
-            needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
-        )
-        else:
-            self.cron_rows = self.cron_manager.load_system_cron()
+    def on_new_requested(self):
+        match self.active_view:
+            case "cron":
+                self.new_cron_job()
+            case "systemd":
+                self.new_systemd_task()
+            case "env":
+                self.new_env_var()
 
+    def on_edit_requested(self):
+        match self.active_view:
+            case "cron":
+                self.edit_cron_job()
+            case "systemd":
+                self.edit_systemd_task()
+            case "env":
+                self.edit_env_var()
+
+    def on_delete_requested(self):
+        match self.active_view:
+            case "cron":
+                self.delete_cron_job()
+            case "systemd":
+                self.delete_systemd_task()
+            case "env":
+                self.delete_env_var()
+
+    def on_refresh_requested(self):
+        match self.active_view:
+            case "cron":
+                self.refresh_cron_jobs()
+            case "systemd":
+                self.refresh_systemd_tasks()
+            case "env":
+                self.refresh_env_vars()
+
+    # ============================================================
+    # Cron CRUD (stubs)
+    # ============================================================
+    def new_cron_job(self):
+        dlg = CronJobEditor(self)
+        if dlg.exec():
+            entry = dlg.get_cron_entry()
+            self.cron_rows.append(entry)
+            self.cron_table.populate(self.cron_rows)
+            self.write_crontab()
+
+    def edit_cron_job(self):
+        row = self.cron_table.currentRow()
+        if row < 0:
+            return
+
+        entry = self.cron_rows[row]
+        dlg = CronJobEditor(self)
+        dlg.set_cron_entry(entry)
+
+        if dlg.exec():
+            updated = dlg.get_cron_entry()
+            self.cron_rows[row] = updated
+            self.cron_table.populate(self.cron_rows)
+            self.write_crontab()
+
+    def delete_cron_job(self):
+        row = self.cron_table.currentRow()
+        if row < 0:
+            return
+        del self.cron_rows[row]
         self.cron_table.populate(self.cron_rows)
-        self.stack.setCurrentWidget(self.cron_table)
-        self.active_editor = "cron"
+        self.write_crontab()
+
+    def refresh_cron_jobs(self):
+        self.show_cron()
+
+    def write_crontab(self):
+        """⭐ Placeholder for temp-file → validate → save logic."""
+        self.logger.info("write_crontab() called — implement cron saving workflow here.")
+
+    # ============================================================
+    # Systemd CRUD (stubs)
+    # ============================================================
+    def new_systemd_task(self):
+        self.logger.info("new_systemd_task() placeholder")
+
+    def edit_systemd_task(self):
+        self.logger.info("edit_systemd_task() placeholder")
+
+    def delete_systemd_task(self):
+        self.logger.info("delete_systemd_task() placeholder")
+
+    def refresh_systemd_tasks(self):
+        self.logger.info("refresh_systemd_tasks() placeholder")
+
+    # ============================================================
+    # Env CRUD (stubs)
+    # ============================================================
+    def new_env_var(self):
+        self.logger.info("new_env_var() placeholder")
+
+    def edit_env_var(self):
+        self.logger.info("edit_env_var() placeholder")
+
+    def delete_env_var(self):
+        self.logger.info("delete_env_var() placeholder")
+
+    def refresh_env_vars(self):
+        self.logger.info("refresh_env_vars() placeholder")
+
+    # ============================================================
+    # Systemd View
+    # ============================================================
+    def open_systemd_tasks(self):
+        if not hasattr(self, "systemd_window"):
+            self.systemd_window = SystemdTasksWindow(parent=self, logctx=self.logctx)
+            self.stack.addWidget(self.systemd_window)
+
+        self.stack.setCurrentWidget(self.systemd_window)
+        self.active_editor = "systemd"
         self._update_sidebar_editability()
 
     # ============================================================
-    # Close Handling
+    # Misc
     # ============================================================
     def handle_close_request(self):
         self.close()
@@ -422,179 +484,55 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             event.accept()
         else:
             event.ignore()
-    
-    def populate(self, rows):
-        self.setRowCount(len(rows))
-        for i, entry in enumerate(rows):
-            self.setItem(i, 0, QTableWidgetItem(entry.schedule_string()))
-            self.setItem(i, 1, QTableWidgetItem(entry.command))
-            self.setItem(i, 2, QTableWidgetItem("enabled" if entry.enabled else "disabled"))
-            self.setItem(i, 3, QTableWidgetItem(entry.comment))
 
-    # ============================================================
-    # Placeholder Methods for Actions
-    # ============================================================
     def open_settings_dialog(self):
-        pass
-
-    def new_timer(self):
-        pass
-
-    def edit_selected_timer(self):
-        pass
-
-    def delete_selected_timer(self):
-        pass
+        self.logger.info("Settings dialog placeholder")
 
     def show_about_dialog(self):
-        pass
+        self.logger.info("About dialog placeholder")
 
     def open_docs_page(self):
-        pass
-    
+        self.logger.info("Docs page placeholder")
+
     def set_scope(self, scope: str):
-        """Update active scope when SidebarWidget changes it."""
         self.active_scope = scope
-        if scope == "user":
-            self.act_view_systemd.setIcon(self.icon_systemd_user)
-        else:
-            self.act_view_systemd.setIcon(self.icon_systemd_system)      
         self.systemd_manager.set_scope(scope)
+        icon = self.icon_systemd_user if scope == "user" else self.icon_systemd_system
+        self.act_view_systemd.setIcon(icon)
         self.statusBar().showMessage(f"Scope changed to: {scope.capitalize()}")
-    def get_entry_from_row(self, row):
-        return self.cron_rows[row]
-    
-    def new_cron_job(self):
-        dlg = CronJobEditor(self)
-        if dlg.exec():
-            entry = dlg.get_cron_entry()
-            self.add_entry_to_table(entry)
-            self.write_crontab()
-    
-    def edit_cron_job(self):
-        row = self.cron_table.currentRow()
-        if row < 0:
-            return
 
-        entry = self.get_entry_from_row(row)
-        dlg = CronJobEditor(self)
-        dlg.set_cron_entry(entry)
+    def _update_sidebar_editability(self):
+        editor = self.active_editor
 
-        if dlg.exec():
-            updated = dlg.get_cron_entry()
-            self.update_row(row, updated)
-            self.write_crontab()
-    def on_cron_row_double_clicked(self, item):
-        row = item.row()
-        self.cron_table.selectRow(row)   # ⭐ This is the missing piece
-        self.edit_cron_job()
-    def on_new_requested(self):
-        if self.active_view == "cron":
-            self.new_cron_job()
-        elif self.active_view == "systemd":
-            self.new_systemd_task()
-        elif self.active_view == "env":
-            self.new_env_var()
-
-    def on_edit_requested(self):
-        if self.active_view == "cron":
-            self.edit_cron_job()
-        elif self.active_view == "systemd":
-            self.edit_systemd_task()
-        elif self.active_view == "env":
-            self.edit_env_var()
-    def on_delete_requested(self):
-        if self.active_view == "cron":
-            self.delete_cron_job()
-        elif self.active_view == "systemd":
-            self.delete_systemd_task()
-        elif self.active_view == "env":
-            self.delete_env_var()
-    def delete_cron_job(self):
-        print("Delete cron job requested")
-
-    def delete_systemd_task(self):
-        print("Delete systemd task requested")
-
-    def delete_env_var(self):
-        print("Delete environment variable requested")
-    
-    def on_refresh_requested(self):
-        match self.active_view:
+        match editor:
             case "cron":
-                self.refresh_cron_jobs()
+                editable = self.features.get("cron", {}).get("editable", True)
+                self.sidebar.set_actions_enabled(editable)
+                move_enabled = (
+                    self.features.get("systemd", {}).get("enabled", False)
+                    and self.distro.get("supports_systemd", True)
+                )
+                self.sidebar.set_move_enabled(move_enabled)
+                self.sidebar.set_move_visible(True)
+                self.sidebar.set_move_label("Move to Systemd")
+
             case "systemd":
-                self.refresh_systemd_tasks()
+                editable = self.features.get("systemd", {}).get("editable", True)
+                self.sidebar.set_actions_enabled(editable)
+                move_enabled = (
+                    self.features.get("cron", {}).get("enabled", False)
+                    and self.distro.get("supports_cron", True)
+                )
+                self.sidebar.set_move_enabled(move_enabled)
+                self.sidebar.set_move_visible(True)
+                self.sidebar.set_move_label("Move to Cron")
+
             case "env":
-                self.refresh_env_vars()
+                editable = self.features.get("env_manager", {}).get("editable", True)
+                self.sidebar.set_actions_enabled(editable)
+                self.sidebar.set_move_enabled(False)
+                self.sidebar.set_move_visible(False)
+
             case _:
-                pass
-    
-    def refresh_cron_jobs(self):
-        print("Refreshing cron jobs")
-
-    
-    def refresh_systemd_tasks(self):
-        print("Refreshing systemd tasks")
-
-    
-    def refresh_env_vars(self):
-        print("Refreshing environment variables")
-
-    
-    def open_systemd_tasks(self):
-        if not hasattr(self, "systemd_window"):
-            self.systemd_window = SystemdTasksWindow(parent=self, logctx=self.logctx)
-            self.stack.addWidget(self.systemd_window)
-
-        self.stack.setCurrentWidget(self.systemd_window)
-        self.active_editor="systemd"
-        self._update_sidebar_editability()
-    def load_cron_for_selected_user(self):
-        """
-        Load cron entries for the user selected in the UI.
-        MainWindow is responsible for:
-        - determining current user (local or remote)
-        - determining selected user
-        - determining whether sudo is required
-        - constructing the correct session (LocalSession or SSHSession)
-        - passing session + needs_sudo into CronManager
-        """
-
-        # 1. Determine selected user from UI
-        selected_user = self.sidebar.user_selector.currentText()
-
-        # 2. Determine current user (local or remote)
-        if self.remote_mode:
-            session = SSHSession(
-                hostname=self.remote_host,
-                username=self.remote_user,
-                password=self.remote_password,
-                keyfile=self.remote_keyfile,
-                port=self.remote_port,
-                logger=self.logger
-            )
-            session.connect()
-            current_user = session.username
-        else:
-            # Local mode
-            current_user = getpass.getuser()
-            session = LocalSession(logger=self.logger)
-
-        # 3. Determine whether sudo is required
-        needs_sudo = (selected_user != current_user)
-
-        # 4. Load cron entries using the correct session + sudo flag
-        try:
-            entries = self.cron_manager.load_user_cron(
-                user=selected_user,
-                session=session,
-                needs_sudo=needs_sudo
-            )
-        except Exception as e:
-            self.logger.error(f"Failed to load cron for {selected_user}: {e}")
-            self.show_error(f"Unable to load cron entries for {selected_user}.")
-            return
-
-        # 5. Display cron entries in the UI
-        self.display_cron_entries(entries)
+                self.sidebar.set_actions_enabled(False)
+                self.sidebar.set_move_enabled(False)
