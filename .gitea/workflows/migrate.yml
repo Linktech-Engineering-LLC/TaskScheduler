@@ -13,8 +13,6 @@ jobs:
 
       - name: Set up Python 3.12
         run: |
-          sudo zypper install -y python312 python312-pip
-          python3.12 -m pip install --upgrade pip
 
       - name: Install dependencies
         run: |
