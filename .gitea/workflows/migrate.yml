@@ -1,7 +1,7 @@
 name: Run Migration
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:
 
 jobs:
   migrate:
