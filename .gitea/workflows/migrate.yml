@@ -1,15 +1,16 @@
 name: Run Migration
 
 on:
-  workflow_dispatch:   # manual trigger only
+  workflow_dispatch:  # manual trigger only
 
 jobs:
   migrate:
-    runs-on: [leap15.6]   # your self-hosted runner label
+    runs-on: [leap15.6]  # your self-hosted runner label
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3git s
+        uses: actions/checkout@v3
+
       - name: Set up Python 3.12
         run: |
           sudo zypper install -y python312 python312-pip
