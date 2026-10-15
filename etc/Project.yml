@@ -63,38 +63,6 @@ TaskScheduler:
   install:
     mode: base
     portable_root: null
-logs:
-  console_enabled: true
-  color_enabled: true
-  level: DEBUG
-  path: ~/logs
-  timestamp_format: "%Y-%m-%d %H:%M:%S"
-  max_lines: 500
-  highlight_patterns:
-    - ERROR
-    - WARN
-    - FAILED
-  include_stack_traces: false
-  rotation:
-    enabled: true
-    max_size_mb: 5
-    max_files: 10
-    compress: true
-    archive_type: tar.gz
-  archive:
-    enabled: true
-    path: ~/logs/archive
-    compress: true
-  retention:
-    days: 30
-  subsystems:
-    cron: true
-    systemd: true
-    environment: true
-    internal: true
-  gui:
-    default_view: task_scheduler
-    allow_path_edit: true
 paths:
   config_root: ~/.config/taskscheduler
   data_root: ~/.local/share/taskscheduler

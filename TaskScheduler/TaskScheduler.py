@@ -6,13 +6,14 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-13
+ Modified: 2026-10-15
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
 """
 
-import os, sys
+import os
+import sys
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 
@@ -33,16 +34,19 @@ from TaskScheduler import PROJECTNAME, VERSION
 # Configuration
 # ---------------------------------------------------------------------------
 
-def init_config(prjcfg, logctx: dict) -> dict:
+def init_config(logctx: dict) -> dict:
     config = {}
+    config["environment"] = get_environment()
     factory = logctx.get("factory", "")
     logger = factory.get_logger("Config")
-    logger.info("Reading Configuration and Host information")
+    logger.info(f"Environment: {config.get('environment', {})}")
+    validate_environment(config.get("environment", {}), logctx)    
+    cfg = load_yaml(Path("etc/Project.yml"))
+    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Project", cfg)
     distros = load_yaml(Path("etc/distros.yml"))
     distros = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Distros", distros)
-    project = prjcfg.get(PROJECTNAME, {})
+    project = cfg.get(PROJECTNAME, {})
     config["mode"] = project["mode"]
-    config["environment"] = get_environment()
     for f in ["features", "gui", "safety", "install"]:
         block = project.get(f)
         config[f] = block if isinstance(block, dict) else {}
@@ -121,7 +125,10 @@ def init_config(prjcfg, logctx: dict) -> dict:
 # Logging
 # ---------------------------------------------------------------------------
 
-def init_logging(cfg: dict) -> dict:
+def init_logging() -> dict:
+    cfg = load_yaml(Path("etc/Logs.yml"))
+    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Logs", cfg)
+    cfg = cfg.get("logs",{})
     log_cfg = {
         "path": Path(cfg.get("path", "")) / f"{PROJECTNAME}.log",
         "log_level": cfg.get("level", "INFO"),
@@ -258,15 +265,26 @@ def load_users_cfg(config: dict, logctx: dict):
             "config_home": config_home
         }
     }
+def validate_environment(env, logger):
+    # Python version check
+    if env["python"]["version"] < (3, 12):
+        logger.error("TaskScheduler requires Python 3.12 or newer.")
+        os._exit(1)
+
+    # Elevated user warning
+    if env["user"]["is_elevated"]:
+        logger.warning(
+            "TaskScheduler is running with elevated privileges. "
+            "This may cause incorrect environment modeling."
+        )
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
 def main():
-    cfg = load_yaml(Path("etc/Project.yml"))
-    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Project", cfg)
-    logctx = init_logging(cfg.get("logs", {}))
-    config = init_config(cfg, logctx)
+    logctx = init_logging()
+    config = init_config(logctx)
     policy = load_security(logctx=logctx)
     config["security"] = policy.get("security", {})
     config["secrets"] = policy.get("secrets", {})
