@@ -13,10 +13,9 @@
 """
 
 import getpass
-from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QPushButton, QRadioButton, QComboBox,
-    QLabel, QFrame, QVBoxLayout, QButtonGroup,
+    QLabel, QFrame, QVBoxLayout, 
     QLineEdit, QCheckBox, QHBoxLayout
 )
 from PySide6.QtCore import Signal
@@ -24,7 +23,6 @@ from PySide6.QtCore import Signal
 from TaskScheduler import PROJECTNAME
 from PythonTools.gui import QtLoggerMixin
 
-from ..widgets.cards import icon
 
 class SidebarWidget(QWidget, QtLoggerMixin):
     # Signals emitted upward to MainWindow
@@ -85,7 +83,6 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.user_label = QLabel("User:")
         self.user_selector = QComboBox()
         self.user_selector.addItems(self.users)
-
         uf_layout.addWidget(self.user_label)
         uf_layout.addWidget(self.user_selector)
 
@@ -169,6 +166,7 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         layout.addWidget(self.controls_frame)
 
         layout.addStretch()
+        self._set_tooltips()
 
     # ------------------------------------------------------------
     # Wire Signals
@@ -245,3 +243,45 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_move.setVisible(visible)
     def set_move_label(self, text: str):
         self.btn_move.setText(text)
+
+    def _set_tooltips(self):
+
+        self.scope_user.setToolTip(
+            "Manage tasks for a specific user"
+        )
+
+        self.scope_system.setToolTip(
+            "Manage system-wide tasks"
+        )
+        self.rb_local.setToolTip(
+            "Edit tasks on the local machine"
+        )
+
+        self.rb_remote.setToolTip(
+            "Connect to a remote machine"
+        )
+        self.user_selector.setToolTip(
+            "Select the user whose tasks will be managed"
+        )
+        self.host_selector.setToolTip(
+            "Select the remote host"
+        )
+        self.btn_new.setToolTip(
+            "Create a new scheduled task"
+        )
+
+        self.btn_edit.setToolTip(
+            "Modify the selected scheduled task"
+        )
+
+        self.btn_delete.setToolTip(
+            "Delete the selected scheduled task"
+        )
+
+        self.btn_move.setToolTip(
+            "Move the selected scheduled task"
+        )
+
+        self.btn_refresh.setToolTip(
+            "Reload task list"
+        )

@@ -37,6 +37,7 @@ from .logic import (
     SystemdManager,
     UserManager
 )
+from .services import UserDiscoveryService
 from .systemd.gui.systemd_tasks_window import SystemdTasksWindow
 from .ui.widgets import icon
 from .ui.widgets import (
@@ -67,10 +68,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         # --- Config ---
         self.config = config or {}
-        self.mode = config.get("mode")
-        self.features = config.get("features", {})
-        self.distro = config.get("distro", {})
-        self.cron_config = self.features.get("cron", {}).copy
+        self.mode = self.config.get("mode")
+        self.features = self.config.get("features", {})
+        self.distro = self.config.get("distro", {})
+        self.cron_config = self.features.get("cron", {}).copy()
 
         # --- Capability Flags ---
         self.can_view_cron = (
@@ -98,6 +99,11 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.env_controller = EnvironmentController()
         self.env_model = EnvironmentTableModel([])
 
+        # --- Services ---
+        self.user_service = UserDiscoveryService(
+            user_config=self.distro.get("user", {}),
+            logctx=self.logctx
+        )
         # --- Active User ---
         users = self.user_manager.get_users()
         self.active_user = users[0] if users else getpass.getuser()
@@ -152,14 +158,17 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         splitter = QSplitter(Qt.Horizontal)
 
         # Sidebar
-        self.sidebar = SidebarWidget(
-            users=self.user_manager.get_users(),
-            hosts=self.host_manager.get_hosts(),
-            config=self.config,
-            logctx=self.logctx
-        )
-        self.sidebar.controls_frame.hide()
+        try:
+            self._create_sidebar()
 
+        except Exception as ex:
+            QMessageBox.critical(
+                self,
+                "Initialization Error",
+                str(ex)
+            )
+            self.close()
+    
         dock = QDockWidget("Sidebar", self)
         dock.setWidget(self.sidebar)
         dock.setTitleBarWidget(QWidget())
@@ -536,3 +545,32 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             case _:
                 self.sidebar.set_actions_enabled(False)
                 self.sidebar.set_move_enabled(False)
+
+    def _create_sidebar(self):
+
+        self.logger.debug("_create_sidebar: start")
+
+        try:
+            users = self.user_service.get_users()
+            self.logger.debug(f"_create_sidebar: got {len(users)} users")
+
+        except RuntimeError as ex:
+            self.logger.error(f"_create_sidebar: error {ex}")
+            QMessageBox.critical(
+                self,
+                "User Discovery Error",
+                str(ex)
+            )
+            return
+
+        self.logger.debug("_create_sidebar: creating widget")
+
+        self.sidebar = SidebarWidget(
+            users=users,
+            hosts=self.host_manager.get_hosts(),
+            config=self.config,
+            logctx=self.logctx
+        )
+        self.sidebar.set_actions_visible(False)
+        self.logger.debug("_create_sidebar: done")
+        

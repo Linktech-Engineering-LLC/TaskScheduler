@@ -136,11 +136,11 @@ class CronManager(LoggerMixin):
         minute, hour, dom, month, dow = parts[:5]
 
         return CronEntry(
-            minute=minute,
-            hour=hour,
-            dom=dom,
-            month=month,
-            dow=dow,
-            command=""  # command will be filled in later
+            minute = minute,
+            hour = hour,
+            dom = dom,
+            month = month,
+            dow = dow,
+            command = ""  # command will be filled in later
         )
         

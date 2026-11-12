@@ -8,6 +8,7 @@ config:
     env_manager: dict
 
   distro:
+    user: dict
     supports_cron: bool
     supports_systemd: bool
     supports_env: bool

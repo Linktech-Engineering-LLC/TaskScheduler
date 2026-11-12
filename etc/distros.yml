@@ -1,5 +1,11 @@
 linux:
   debian:
+    user:
+      min_uid: 1000
+      required_home_prefix: /home/
+      required_home_directory: true
+      excluded_users:
+        - nobody
     supports_systemd: true
     supports_cron: true
     supports_env: true
@@ -23,6 +29,12 @@ linux:
     package_manager: apt
 
   redhat:
+    user:
+      min_uid: 1000
+      required_home_prefix: /home/
+      required_home_directory: true
+      excluded_users:
+        - nobody
     supports_systemd: true
     supports_cron: true
     supports_env: true
@@ -46,6 +58,13 @@ linux:
     package_manager: dnf
 
   suse:
+    user:
+      min_uid: 1000
+      required_home_prefix: /home/
+      required_home_directory: true
+      excluded_users:
+        - nobody
+
     supports_systemd: true
     supports_cron: true
     supports_env: true
@@ -69,6 +88,12 @@ linux:
     package_manager: zypper
 
   arch:
+    user:
+      min_uid: 1000
+      required_home_prefix: /home/
+      required_home_directory: true
+      excluded_users:
+        - nobody
     supports_systemd: true
     supports_cron: true
     supports_env: true

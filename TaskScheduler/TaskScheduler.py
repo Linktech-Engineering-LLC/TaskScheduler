@@ -107,6 +107,7 @@ def init_config(logctx: dict) -> dict:
 
     # Normalize distro block
     config["distro"] = {
+        "user": d.get("user",{}),
         "supports_cron": d.get("supports_cron", False),
         "supports_systemd": d.get("supports_systemd", False),
         "supports_env": d.get("supports_env", False),
