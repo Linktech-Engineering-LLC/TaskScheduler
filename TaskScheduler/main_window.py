@@ -158,16 +158,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         splitter = QSplitter(Qt.Horizontal)
 
         # Sidebar
-        try:
-            self._create_sidebar()
-
-        except Exception as ex:
-            QMessageBox.critical(
-                self,
-                "Initialization Error",
-                str(ex)
-            )
-            self.close()
+        self._create_sidebar()
     
         dock = QDockWidget("Sidebar", self)
         dock.setWidget(self.sidebar)
@@ -279,7 +270,8 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.sidebar.editRequested.connect(self.on_edit_requested)
         self.sidebar.deleteRequested.connect(self.on_delete_requested)
         self.sidebar.refreshRequested.connect(self.on_refresh_requested)
-
+        self.sidebar.userChanged.connect(self.on_user_changed)
+        
         # Cron table
         self.cron_table.itemDoubleClicked.connect(self.on_cron_row_double_clicked)
 
@@ -315,9 +307,9 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         if scope == "user":
             self.cron_rows = self.cron_manager.load_user_cron(
-                user=getpass.getuser(),
+                user=self.active_user,
                 session=LocalSession(logger=self.logger),
-                needs_sudo=(self.sidebar.user_selector.currentText() != getpass.getuser())
+                needs_sudo=(self.active_user != getpass.getuser())
             )
         else:
             self.cron_rows = self.cron_manager.load_system_cron()
@@ -391,6 +383,14 @@ class MainWindow(QMainWindow, QtLoggerMixin):
                 self.refresh_systemd_tasks()
             case "env":
                 self.refresh_env_vars()
+
+    def on_user_changed(self, user: str):
+        self.active_user = user
+
+        if self.active_view == "cron" and self.active_scope == "user":
+            self.show_cron()
+        elif self.active_view == "dashboard":
+            self.refresh_dashboard()
 
     # ============================================================
     # Cron CRUD (stubs)
@@ -550,18 +550,8 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         self.logger.debug("_create_sidebar: start")
 
-        try:
-            users = self.user_service.get_users()
-            self.logger.debug(f"_create_sidebar: got {len(users)} users")
-
-        except RuntimeError as ex:
-            self.logger.error(f"_create_sidebar: error {ex}")
-            QMessageBox.critical(
-                self,
-                "User Discovery Error",
-                str(ex)
-            )
-            return
+        users = self.user_service.get_users()
+        self.logger.debug(f"_create_sidebar: got {len(users)} users")
 
         self.logger.debug("_create_sidebar: creating widget")
 
@@ -570,6 +560,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             hosts=self.host_manager.get_hosts(),
             config=self.config,
             logctx=self.logctx
+        )
+        self.active_user = (
+            self.sidebar.user_selector.currentText()
+            or self.active_user
         )
         self.sidebar.set_actions_visible(False)
         self.logger.debug("_create_sidebar: done")

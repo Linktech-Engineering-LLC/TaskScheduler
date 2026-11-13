@@ -15,7 +15,7 @@
 import os
 import sys
 from pathlib import Path
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from PythonTools.ansible import (
     load_yaml, GenericInventoryLoader, 
@@ -291,10 +291,14 @@ def main():
     config["secrets"] = policy.get("secrets", {})
     config["users"] = load_users_cfg(config=config, logctx=logctx)
     app = QApplication([])
-    window = MainWindow(config, logctx)
+    try:
+        window = MainWindow(config)
+    except RuntimeError as ex:
+        QMessageBox.critical(None, "User Discovery Error", str(ex))
+        return 1
     window.show()
 
-    sys.exit(app.exec())
+    return app.exec()
 
 
 if __name__ == "__main__":
