@@ -1,0 +1,96 @@
+on:
+  push:
+    branches:
+      - main
+  create:
+    tags:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: dad:3000/linux/leon-ci:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y shellcheck
+          pip install flake8 black isort yamllint
+
+      - name: Run flake8 (non-blocking)
+        run: |
+          echo "Running flake8..."
+          flake8 || true
+
+      - name: Run black (check only, non-blocking)
+        run: |
+          echo "Running black..."
+          black --check . || true
+
+      - name: Run isort (check only, non-blocking)
+        run: |
+          echo "Running isort..."
+          isort --check-only . || true
+
+      - name: Run yamllint (non-blocking)
+        run: |
+          echo "Running yamllint..."
+          yamllint . || true
+
+      - name: Run shellcheck (non-blocking)
+        run: |
+          echo "Running shellcheck..."
+          shellcheck "**/*.sh" || true
+
+  sync_to_remote:
+    needs: lint
+    runs-on: ubuntu-latest
+    container:
+      image: dad:3000/linux/leon-ci:latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure openssh-client is installed
+        run: |
+          apt-get update
+          apt-get install -y openssh-client
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.TASKSCHEDULER_GITHUB }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Add GitHub to known_hosts
+        run: |
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+
+      - name: Start SSH agent
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_ed25519
+
+      - name: Push to Remote Hub
+        run: |
+          git remote add github ssh://git@github.com/Linktech-Engineering-LLC/TaskScheduler.git
+          git fetch github main
+          git merge --ff-only github/main || echo "Non-fast-forward; skipping merge"
+          git push github main
+          for tag in $(git tag -l "v*"); do
+              git push github "$tag"
+          done
