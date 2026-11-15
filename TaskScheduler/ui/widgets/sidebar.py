@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-09
+ Modified: 2026-11-15
  File: taskscheduler/ui/widgets/sidebar.py
  Version: 1.0.0
  Description: Description of this module
@@ -35,7 +35,8 @@ class SidebarWidget(QWidget, QtLoggerMixin):
     editRequested = Signal()
     deleteRequested = Signal()
     moveRequested = Signal()
-    refreshRequested = Signal()
+    saveRequested = Signal()
+    cancelRequested = Signal()
 
     def __init__(self, users: list[str], hosts: list[str], config: dict | None = None, logctx: dict | None = None):
         super().__init__()
@@ -152,16 +153,19 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         controls_layout.setContentsMargins(0, 0, 0, 0)
 
         self.btn_new = QPushButton("New")
+        self.btn_new.setEnabled(True)
         self.btn_edit = QPushButton("Edit")
         self.btn_delete = QPushButton("Delete")
         self.btn_move = QPushButton("Move")
-        self.btn_refresh = QPushButton("Refresh")
+        self.btn_save = QPushButton("Save")
+        self.btn_cancel = QPushButton("Cancel")
 
         controls_layout.addWidget(self.btn_new)
         controls_layout.addWidget(self.btn_edit)
         controls_layout.addWidget(self.btn_delete)
         controls_layout.addWidget(self.btn_move)
-        controls_layout.addWidget(self.btn_refresh)
+        controls_layout.addWidget(self.btn_save)
+        controls_layout.addWidget(self.btn_cancel)
 
         layout.addWidget(self.controls_frame)
 
@@ -196,7 +200,8 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_edit.clicked.connect(self.editRequested.emit)
         self.btn_delete.clicked.connect(self.deleteRequested.emit)
         self.btn_move.clicked.connect(self.moveRequested.emit)
-        self.btn_refresh.clicked.connect(self.refreshRequested.emit)
+        self.btn_save.clicked.connect(self.saveRequested.emit)
+        self.btn_cancel.clicked.connect(self.cancelRequested.emit)
 
     # ------------------------------------------------------------
     # Visibility Logic
@@ -234,7 +239,6 @@ class SidebarWidget(QWidget, QtLoggerMixin):
     def set_actions_visible(self, visible: bool):
         self.controls_frame.setVisible(visible)
     def set_actions_enabled(self, enabled: bool):
-        self.btn_new.setEnabled(enabled)
         self.btn_edit.setEnabled(enabled)
         self.btn_delete.setEnabled(enabled)
     def set_move_enabled(self, enabled: bool):
@@ -243,6 +247,9 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_move.setVisible(visible)
     def set_move_label(self, text: str):
         self.btn_move.setText(text)
+    def set_dirty_ations(self, enabled: bool):
+        self.btn_save.setEnabled(enabled)
+        self.btn_cancel.setEnabled(enabled)
 
     def _set_tooltips(self):
 
@@ -279,9 +286,12 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         )
 
         self.btn_move.setToolTip(
-            "Move the selected scheduled task"
+            "Mark the selected scheduled task to be moved"
         )
 
-        self.btn_refresh.setToolTip(
-            "Reload task list"
+        self.btn_save.setToolTip(
+            "Commit the desired changes and refresh view"
+        )
+        self.btn_cancel.setToolTip(
+            "Cancel all changes and refresh view"
         )

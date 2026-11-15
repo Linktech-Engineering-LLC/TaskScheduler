@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-10-15
+ Modified: 2026-11-15
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
@@ -292,7 +292,7 @@ def main():
     config["users"] = load_users_cfg(config=config, logctx=logctx)
     app = QApplication([])
     try:
-        window = MainWindow(config)
+        window = MainWindow(config=config, logctx=logctx)
     except RuntimeError as ex:
         QMessageBox.critical(None, "User Discovery Error", str(ex))
         return 1

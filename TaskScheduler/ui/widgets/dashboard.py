@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-11
+ Modified: 2026-11-15
  File: taskscheduler/ui/widgets/dashboard.py
  Version: 1.0.0
  Description: Description of this module
@@ -31,8 +31,10 @@ class DashboardWidget(QWidget, QtLoggerMixin):
         self.cron_enable = False
         self.systemd_enable = False
         self.env_enabled = False
-        self._init_logger(logctx, "DASHBOARD", PROJECTNAME)
-        self.logger.info("DashboardWidget Initialized.")
+        self.logctx = logctx
+        if self.logctx:
+            self._init_logger(logctx, "DASHBOARD", PROJECTNAME)
+            self.logger.info("DashboardWidget Initialized.")
 
         self.config = config or {}
 
@@ -49,7 +51,7 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
         if missing:
             self.logger.warning(f"Dashboard config missing or null keys: {missing}")
-        elif self.logctx.get("level") == "DEBUG":
+        elif self.logctx and self.logctx.get("level") == "DEBUG":
             self.logger.debug(f"distro: {self.distro}")
             self.logger.debug(f"features: {self.features}")
             
