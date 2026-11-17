@@ -26,22 +26,21 @@ jobs:
         run: |
           apt-get update
           apt-get install -y shellcheck
-          pip install flake8 black isort yamllint
+          pip install ruff yamllint
 
-      - name: Run flake8 (non-blocking)
+      - name: Ruff lint
         run: |
-          echo "Running flake8..."
-          flake8 || true
+          echo "Running Ruff..."
+          ruff check . || true
 
-      - name: Run black (check only, non-blocking)
+      - name: Ruff Format
         run: |
-          echo "Running black..."
-          black --check . || true
+          echo "Checking formatting..."
+          ruff format --check . || true
 
-      - name: Run isort (check only, non-blocking)
+      - name: Ruff Statistics
         run: |
-          echo "Running isort..."
-          isort --check-only . || true
+          ruff check . --statistics
 
       - name: Run yamllint (non-blocking)
         run: |
