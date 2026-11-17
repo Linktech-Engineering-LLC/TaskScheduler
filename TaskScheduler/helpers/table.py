@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-11
- Modified: 2026-10-11
+ Modified: 2026-11-17
  File: TaskScheduler/helpers/table.py
  Version: 1.0.0
  Description: Description of this module
@@ -28,6 +28,10 @@ def apply_cron_table_behavior(table, cfg):
         table.setEditTriggers(QAbstractItemView.NoEditTriggers)
     else:
         table.setEditTriggers(QAbstractItemView.AllEditTriggers)
+
+    # Select entire row when any cell is clicked
+    table.setSelectionBehavior(QAbstractItemView.SelectRows)
+    table.setSelectionMode(QAbstractItemView.SingleSelection)
 
     table.horizontalHeader().setStretchLastSection(stretch_last)
 

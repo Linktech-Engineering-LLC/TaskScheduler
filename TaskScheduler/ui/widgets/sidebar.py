@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-11-15
+ Modified: 2026-11-17
  File: taskscheduler/ui/widgets/sidebar.py
  Version: 1.0.0
  Description: Description of this module
@@ -155,10 +155,15 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_new = QPushButton("New")
         self.btn_new.setEnabled(True)
         self.btn_edit = QPushButton("Edit")
+        self.btn_edit.setEnabled(False)
         self.btn_delete = QPushButton("Delete")
+        self.btn_delete.setEnabled(False)
         self.btn_move = QPushButton("Move")
+        self.btn_move.setEnabled(False)
         self.btn_save = QPushButton("Save")
+        self.btn_save.setEnabled(False)
         self.btn_cancel = QPushButton("Cancel")
+        self.btn_cancel.setEnabled(False)
 
         controls_layout.addWidget(self.btn_new)
         controls_layout.addWidget(self.btn_edit)
@@ -247,7 +252,9 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         self.btn_move.setVisible(visible)
     def set_move_label(self, text: str):
         self.btn_move.setText(text)
-    def set_dirty_ations(self, enabled: bool):
+    def set_new_enabled(self, enabled: bool):
+        self.btn_new.setEnabled(enabled)
+    def set_dirty_actions(self, enabled: bool):
         self.btn_save.setEnabled(enabled)
         self.btn_cancel.setEnabled(enabled)
 

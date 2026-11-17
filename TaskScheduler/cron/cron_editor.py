@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-28
- Modified: 2026-10-10
+ Modified: 2026-11-17
  File: taskscheduler/cron_editor.py
  Version: 1.0.0
  Description: Description of this module
@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from .cron_entry import CronEntry
 class CronJobEditor(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -312,4 +313,37 @@ class CronJobEditor(QDialog):
                 return
 
         super().accept()
-    
+
+    def get_cron_entry(self) -> CronEntry:
+        return CronEntry(
+            minute=self._selected_values(
+                self.minutes_group.minute_grid.buttons
+            ),
+            hour=self._selected_values(
+                self.hours_group.buttons
+            ),
+            dom=self._selected_values(
+                self.days_group.buttons
+            ),
+            month=self._selected_values(
+                self.months_group.buttons
+            ),
+            dow=self._selected_values(
+                self.weekdays_group.buttons
+            ),
+            command=self.command_edit.text().strip(),
+            comment=self.comment_edit.text().strip(),
+            enabled=self.enable_box.isChecked(),
+            daily=self.daily_box.isChecked(),
+            boot=self.boot_box.isChecked(),
+        )
+    def crontab_line(self) -> str:
+        return (
+            f"{self.minute} "
+            f"{self.hour} "
+            f"{self.dom} "
+            f"{self.month} "
+            f"{self.dow} "
+            f"{self.command}"
+        )
+   

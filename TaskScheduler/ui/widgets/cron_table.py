@@ -6,14 +6,14 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-11
+ Modified: 2026-11-17
  File: taskscheduler/ui/widgets/cron_table.py
  Version: 1.0.0
  Description: Description of this module
 """
 
 from PySide6.QtWidgets import (
-    QTableWidget, QTableWidgetItem, QAbstractItemView,
+    QTableWidget, QTableWidgetItem
 )
 from TaskScheduler import PROJECTNAME
 from ...helpers import table
