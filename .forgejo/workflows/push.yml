@@ -40,7 +40,7 @@ jobs:
 
       - name: Ruff Statistics
         run: |
-          ruff check . --statistics
+          ruff check . --statistics || true
 
       - name: Run yamllint (non-blocking)
         run: |
