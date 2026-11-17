@@ -6,16 +6,14 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-13
- Modified: 2026-10-13
+ Modified: 2026-11-17
  File: TaskScheduler/ui/widgets/environment.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QTableView, QLabel
-)
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel, QTableView, QVBoxLayout, QWidget
 
 
 class EnvironmentWidget(QWidget):

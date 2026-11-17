@@ -6,22 +6,19 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/systemd/gui/visualizer_widget.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QGridLayout, QSizePolicy
-)
-from PySide6.QtGui import QColor, QPalette
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor, QPalette
+from PySide6.QtWidgets import QGridLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 
-from ..visualizer import parse_oncalendar, summarize_calendar
 from ..models import CalendarSpec
+from ..visualizer import parse_oncalendar, summarize_calendar
 
 
 class CalendarVisualizerWidget(QWidget):

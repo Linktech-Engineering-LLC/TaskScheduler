@@ -13,15 +13,23 @@
 """
 
 import getpass
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QPushButton, QRadioButton, QComboBox,
-    QLabel, QFrame, QVBoxLayout, 
-    QLineEdit, QCheckBox, QHBoxLayout
-)
+
 from PySide6.QtCore import Signal
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+    QWidget,
+)
+from PythonTools.gui import QtLoggerMixin
 
 from TaskScheduler import PROJECTNAME
-from PythonTools.gui import QtLoggerMixin
 
 
 class SidebarWidget(QWidget, QtLoggerMixin):
@@ -38,7 +46,13 @@ class SidebarWidget(QWidget, QtLoggerMixin):
     saveRequested = Signal()
     cancelRequested = Signal()
 
-    def __init__(self, users: list[str], hosts: list[str], config: dict | None = None, logctx: dict | None = None):
+    def __init__(
+        self,
+        users: list[str],
+        hosts: list[str],
+        config: dict | None = None,
+        logctx: dict | None = None,
+    ):
         super().__init__()
         self._init_logger(logctx, "SIDEBAR", PROJECTNAME)
         self.logger.info("SidebarWidget Initialized.")
@@ -182,8 +196,12 @@ class SidebarWidget(QWidget, QtLoggerMixin):
     # ------------------------------------------------------------
     def _wire_signals(self):
         # Scope
-        self.scope_user.toggled.connect(lambda checked: checked and self.scopeChanged.emit("user"))
-        self.scope_system.toggled.connect(lambda checked: checked and self.scopeChanged.emit("system"))
+        self.scope_user.toggled.connect(
+            lambda checked: checked and self.scopeChanged.emit("user")
+        )
+        self.scope_system.toggled.connect(
+            lambda checked: checked and self.scopeChanged.emit("system")
+        )
         self.scope_user.toggled.connect(lambda _: self.update_visibility())
         self.scope_system.toggled.connect(lambda _: self.update_visibility())
 
@@ -240,65 +258,48 @@ class SidebarWidget(QWidget, QtLoggerMixin):
         remote = self.rb_remote.isChecked()
         self.remoteModeChanged.emit(remote)
         self.update_visibility()
+
     # In Sidebar class
     def set_actions_visible(self, visible: bool):
         self.controls_frame.setVisible(visible)
+
     def set_actions_enabled(self, enabled: bool):
         self.btn_edit.setEnabled(enabled)
         self.btn_delete.setEnabled(enabled)
+
     def set_move_enabled(self, enabled: bool):
         self.btn_move.setEnabled(enabled)
+
     def set_move_visible(self, visible: bool):
         self.btn_move.setVisible(visible)
+
     def set_move_label(self, text: str):
         self.btn_move.setText(text)
+
     def set_new_enabled(self, enabled: bool):
         self.btn_new.setEnabled(enabled)
+
     def set_dirty_actions(self, enabled: bool):
         self.btn_save.setEnabled(enabled)
         self.btn_cancel.setEnabled(enabled)
 
     def _set_tooltips(self):
 
-        self.scope_user.setToolTip(
-            "Manage tasks for a specific user"
-        )
+        self.scope_user.setToolTip("Manage tasks for a specific user")
 
-        self.scope_system.setToolTip(
-            "Manage system-wide tasks"
-        )
-        self.rb_local.setToolTip(
-            "Edit tasks on the local machine"
-        )
+        self.scope_system.setToolTip("Manage system-wide tasks")
+        self.rb_local.setToolTip("Edit tasks on the local machine")
 
-        self.rb_remote.setToolTip(
-            "Connect to a remote machine"
-        )
-        self.user_selector.setToolTip(
-            "Select the user whose tasks will be managed"
-        )
-        self.host_selector.setToolTip(
-            "Select the remote host"
-        )
-        self.btn_new.setToolTip(
-            "Create a new scheduled task"
-        )
+        self.rb_remote.setToolTip("Connect to a remote machine")
+        self.user_selector.setToolTip("Select the user whose tasks will be managed")
+        self.host_selector.setToolTip("Select the remote host")
+        self.btn_new.setToolTip("Create a new scheduled task")
 
-        self.btn_edit.setToolTip(
-            "Modify the selected scheduled task"
-        )
+        self.btn_edit.setToolTip("Modify the selected scheduled task")
 
-        self.btn_delete.setToolTip(
-            "Delete the selected scheduled task"
-        )
+        self.btn_delete.setToolTip("Delete the selected scheduled task")
 
-        self.btn_move.setToolTip(
-            "Mark the selected scheduled task to be moved"
-        )
+        self.btn_move.setToolTip("Mark the selected scheduled task to be moved")
 
-        self.btn_save.setToolTip(
-            "Commit the desired changes and refresh view"
-        )
-        self.btn_cancel.setToolTip(
-            "Cancel all changes and refresh view"
-        )
+        self.btn_save.setToolTip("Commit the desired changes and refresh view")
+        self.btn_cancel.setToolTip("Cancel all changes and refresh view")

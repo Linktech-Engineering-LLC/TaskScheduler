@@ -6,11 +6,12 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-08
- Modified: 2026-10-08
+ Modified: 2026-11-17
  File: TaskScheduler/models/scheduler_caps.py
  Version: 1.0.0
  Description: Description of this module
 """
+
 
 class SchedulerCapabilities:
     def __init__(self, env, distro, features):

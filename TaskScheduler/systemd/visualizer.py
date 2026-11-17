@@ -6,26 +6,23 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/systemd/parsers.py
  Version: 1.0.0
  Description: Description of this module
 """
 
 import re
-
 from pathlib import Path
-from typing import Dict, List
 
-from .models import (
-    CalendarSpec,
-    SystemdServiceUnit, 
-    SystemdTimerUnit,
-    WEEKDAYS
-)
 from PythonTools.net import local_command, sudo_run
 
-def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = None, logger=None) -> Dict[str, Dict[str, str]]:
+from .models import WEEKDAYS, CalendarSpec
+
+
+def get_timer_runtime_metadata(
+    user: bool = True, sudo_password: str | None = None, logger=None
+) -> dict[str, dict[str, str]]:
     """
     Returns:
     {
@@ -50,7 +47,7 @@ def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = No
     )
     if logger:
         logger.debug(f"[DEBUG]get_timer_runtime_metadata Results={out}")
-    metadata: Dict[str, Dict[str, str]] = {}
+    metadata: dict[str, dict[str, str]] = {}
 
     for line in out.splitlines():
         parts = line.split()
@@ -61,8 +58,8 @@ def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = No
         if not timer.endswith(".timer"):
             continue
 
-        next_run = " ".join(parts[1:3])     # date + time
-        last_run = " ".join(parts[3:5])     # date + time
+        next_run = " ".join(parts[1:3])  # date + time
+        last_run = " ".join(parts[3:5])  # date + time
         service = parts[5]
         state = " ".join(parts[6:]) if len(parts) > 6 else ""
 
@@ -70,10 +67,11 @@ def get_timer_runtime_metadata(user: bool = True, sudo_password: str | None = No
             "next": next_run,
             "last": last_run,
             "service": service,
-            "state": state
+            "state": state,
         }
 
     return metadata
+
 
 def parse_oncalendar(expr: str) -> CalendarSpec:
     raw = expr.strip()
@@ -119,7 +117,8 @@ def parse_oncalendar(expr: str) -> CalendarSpec:
 
     return CalendarSpec(raw, years, months, days, weekdays, times)
 
-def expand_field(field: str) -> List[str]:
+
+def expand_field(field: str) -> list[str]:
     field = field.strip()
 
     if field == "*":
@@ -136,12 +135,13 @@ def expand_field(field: str) -> List[str]:
 
     return [field]
 
-def expand_range(start: str, end: str) -> List[str]:
+
+def expand_range(start: str, end: str) -> list[str]:
     # Weekday range
     if start in WEEKDAYS and end in WEEKDAYS:
         s = WEEKDAYS.index(start)
         e = WEEKDAYS.index(end)
-        return WEEKDAYS[s:e+1]
+        return WEEKDAYS[s : e + 1]
 
     # Numeric range
     if start.isdigit() and end.isdigit():
@@ -154,6 +154,7 @@ def expand_range(start: str, end: str) -> List[str]:
         return [f"{h:02d}:{sm:02d}" for h in range(sh, eh + 1)]
 
     return [start, end]
+
 
 def summarize_calendar(spec: CalendarSpec) -> str:
     parts = []
@@ -174,6 +175,7 @@ def summarize_calendar(spec: CalendarSpec) -> str:
         parts.append(f"Times: {' '.join(spec.times)}")
 
     return "\n".join(parts)
+
 
 def find_dropins(name: str, logger=None) -> list[Path]:
     """

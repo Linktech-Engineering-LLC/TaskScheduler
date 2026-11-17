@@ -14,10 +14,12 @@
 
 from PySide6.QtWidgets import QAbstractItemView
 
+
 def apply_cron_table_structure(table, cfg):
     columns = cfg.get("columns", ["Schedule", "Command", "Status", "Comment"])
     table.setColumnCount(len(columns))
     table.setHorizontalHeaderLabels(columns)
+
 
 def apply_cron_table_behavior(table, cfg):
     readonly = cfg.get("readonly", True)

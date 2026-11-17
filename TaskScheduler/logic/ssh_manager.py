@@ -6,13 +6,14 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: timerdeck/logic/ssh_manager.py
  Version: 1.0.0
  Description: Description of this module
 """
 
 from PythonTools.sessions import SSHSession
+
 
 class SSHManager:
     def __init__(self):

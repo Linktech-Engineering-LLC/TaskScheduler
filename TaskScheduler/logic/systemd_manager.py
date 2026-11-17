@@ -6,17 +6,18 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-07
+ Modified: 2026-11-17
  File: timerdeck/logic/systemd_manager.py
  Version: 1.0.0
  Description: Description of this module
 """
-import getpass
+
+from PythonTools.log_helpers import log_call
+from PythonTools.sessions import LocalSession
 
 from TaskScheduler import PROJECTNAME
 
-from PythonTools.sessions import LocalSession, SystemdRunner
-from PythonTools.log_helpers import log_call
+
 class SystemdManager:
     def __init__(self, logctx: dict | None = None):
         # Default scope is personal (user-level systemd)
@@ -30,6 +31,7 @@ class SystemdManager:
         else:
             # Fallback logger: avoids crashes in test mode
             import logging
+
             self.logger = logging.getLogger(f"{PROJECTNAME}.SYSTEMD")
             self.logger.addHandler(logging.NullHandler())
 
@@ -58,6 +60,7 @@ class SystemdManager:
 
         output = session.run(cmd)
         return self._parse_timers(output.msg)
+
     @log_call
     def _parse_timers(self, output: str):
         lines = [
@@ -70,7 +73,7 @@ class SystemdManager:
 
         for line in lines:
             if "timers listed" in line.lower():
-                continue                
+                continue
             parts = line.split()
 
             unit = parts[-2]
@@ -85,7 +88,7 @@ class SystemdManager:
                 "service": activates,
                 "next": next_run,
                 "last": last_run,
-                "status": "active"
+                "status": "active",
             }
 
         return list(parsed.values())

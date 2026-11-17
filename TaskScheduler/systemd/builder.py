@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-05
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/systemd/builder.py
  Version: 1.0.0
  Description: Description of this module
@@ -15,11 +15,16 @@
 from pathlib import Path
 
 from .models import (
-    ParsedUnitFile, ParsedUnitSection, SystemdTimerUnit,
-    SystemdServiceUnit
+    ParsedUnitFile,
+    ParsedUnitSection,
+    SystemdServiceUnit,
+    SystemdTimerUnit,
 )
 
-def build_timer_unit(name: str, parsed: ParsedUnitFile, merged_timer: ParsedUnitSection) -> SystemdTimerUnit:
+
+def build_timer_unit(
+    name: str, parsed: ParsedUnitFile, merged_timer: ParsedUnitSection
+) -> SystemdTimerUnit:
     unit = SystemdTimerUnit(name=name, fragment_path=parsed.path)
 
     # Description from [Unit]
@@ -32,10 +37,14 @@ def build_timer_unit(name: str, parsed: ParsedUnitFile, merged_timer: ParsedUnit
 
     # Accuracy / jitter
     unit.accuracy_sec = merged_timer.entries.get("AccuracySec", [None])[0]
-    unit.randomized_delay_sec = merged_timer.entries.get("RandomizedDelaySec", [None])[0]
+    unit.randomized_delay_sec = merged_timer.entries.get("RandomizedDelaySec", [None])[
+        0
+    ]
 
     # Persistent flag
-    unit.persistent = merged_timer.entries.get("Persistent", ["false"])[0].lower() == "true"
+    unit.persistent = (
+        merged_timer.entries.get("Persistent", ["false"])[0].lower() == "true"
+    )
 
     # Linked service name (if present)
     if unit_section:
@@ -43,7 +52,10 @@ def build_timer_unit(name: str, parsed: ParsedUnitFile, merged_timer: ParsedUnit
 
     return unit
 
-def build_service_unit(name: str, parsed: ParsedUnitFile, merged_service: ParsedUnitSection) -> SystemdServiceUnit:
+
+def build_service_unit(
+    name: str, parsed: ParsedUnitFile, merged_service: ParsedUnitSection
+) -> SystemdServiceUnit:
     svc = SystemdServiceUnit(name=name, fragment_path=parsed.path)
 
     unit_section = parsed.sections.get("Unit")
@@ -75,6 +87,8 @@ def build_service_unit(name: str, parsed: ParsedUnitFile, merged_service: Parsed
                 svc.environment[key.strip()] = val.strip().strip('"')
 
     return svc
+
+
 def parse_systemd_unit(path: Path) -> ParsedUnitFile:
     sections: dict[str, ParsedUnitSection] = {}
     file_comments: list[str] = []
@@ -97,7 +111,7 @@ def parse_systemd_unit(path: Path) -> ParsedUnitFile:
                 name=name,
                 entries={},
                 comments_before=pending_comments.copy(),
-                comments_inline={}
+                comments_inline={},
             )
             sections[name] = current_section
             pending_comments.clear()
@@ -112,7 +126,9 @@ def parse_systemd_unit(path: Path) -> ParsedUnitFile:
             current_section.entries.setdefault(key, []).append(value)
 
             if pending_comments:
-                current_section.comments_inline.setdefault(key, []).extend(pending_comments)
+                current_section.comments_inline.setdefault(key, []).extend(
+                    pending_comments
+                )
                 pending_comments.clear()
 
             continue
@@ -123,6 +139,8 @@ def parse_systemd_unit(path: Path) -> ParsedUnitFile:
             pending_comments.clear()
 
     return ParsedUnitFile(path=path, sections=sections, file_comments=file_comments)
+
+
 def parse_dropins(paths: list[Path], logger=None) -> list[ParsedUnitFile]:
     parsed = []
     for p in paths:
@@ -132,7 +150,11 @@ def parse_dropins(paths: list[Path], logger=None) -> list[ParsedUnitFile]:
             if logger:
                 logger.error(f"Failed to parse drop-in {p}: {e}")
     return parsed
-def merge_timer_sections(base: ParsedUnitSection, dropins: list[ParsedUnitFile]) -> ParsedUnitSection:
+
+
+def merge_timer_sections(
+    base: ParsedUnitSection, dropins: list[ParsedUnitFile]
+) -> ParsedUnitSection:
     """
     Merge base [Timer] section with drop-in [Timer] sections.
     Drop-ins override keys but comments are merged.
@@ -141,7 +163,7 @@ def merge_timer_sections(base: ParsedUnitSection, dropins: list[ParsedUnitFile])
         name="Timer",
         entries={k: v.copy() for k, v in base.entries.items()},
         comments_before=base.comments_before.copy(),
-        comments_inline={k: v.copy() for k, v in base.comments_inline.items()}
+        comments_inline={k: v.copy() for k, v in base.comments_inline.items()},
     )
 
     for dropin in dropins:
@@ -160,9 +182,12 @@ def merge_timer_sections(base: ParsedUnitSection, dropins: list[ParsedUnitFile])
             merged.comments_inline.setdefault(key, []).extend(comments)
 
     return merged
-def merge_file_comments(base: ParsedUnitFile, dropins: list[ParsedUnitFile]) -> list[str]:
+
+
+def merge_file_comments(
+    base: ParsedUnitFile, dropins: list[ParsedUnitFile]
+) -> list[str]:
     comments = base.file_comments.copy()
     for d in dropins:
         comments.extend(d.file_comments)
     return comments
-

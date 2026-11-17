@@ -6,13 +6,14 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-05
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/systemd/gui/monotonic_visualizer_widget.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+
 
 class MonotonicVisualizerWidget(QWidget):
     def __init__(self, monotonic: dict[str, str], parent=None):

@@ -12,28 +12,29 @@
  Description: Description of this module
 """
 
-from PySide6.QtWidgets import (
-    QTableWidget, QTableWidgetItem
-)
-from TaskScheduler import PROJECTNAME
-from ...helpers import table
+from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 from PythonTools.gui import QtLoggerMixin
+
+from TaskScheduler import PROJECTNAME
+
+from ...helpers import table
+
 
 class CronTableWidget(QTableWidget, QtLoggerMixin):
     def __init__(self, config: dict | None = None, logctx: dict | None = None):
         super().__init__()
         self._init_logger(logctx, "CRON", PROJECTNAME)
         self.config = config or {}
-        
+
         # Apply structure + behavior via helpers
         table.apply_cron_table_structure(self, self.config)
         table.apply_cron_table_behavior(self, self.config)
 
         self.logger.info("CronTableWidget Structure Initialized.")
+
     def populate(self, rows):
         labels = self.config.get(
-            "status_labels",
-            {"enabled": "enabled", "disabled": "disabled"}
+            "status_labels", {"enabled": "enabled", "disabled": "disabled"}
         )
 
         self.setRowCount(len(rows))
@@ -45,4 +46,3 @@ class CronTableWidget(QTableWidget, QtLoggerMixin):
             self.setItem(i, 2, QTableWidgetItem(status))
 
             self.setItem(i, 3, QTableWidgetItem(t.comment))
-    

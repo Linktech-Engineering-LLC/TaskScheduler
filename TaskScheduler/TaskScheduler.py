@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-11-15
+ Modified: 2026-11-17
  File: TaskScheduler.py
  Version: 1.0.0
  Description: Entry point for the TimerDeck Application
@@ -15,24 +15,27 @@
 import os
 import sys
 from pathlib import Path
-from PySide6.QtWidgets import QApplication, QMessageBox
 
+from PySide6.QtWidgets import QApplication, QMessageBox
 from PythonTools.ansible import (
-    load_yaml, GenericInventoryLoader, 
-    VaultLoader, VaultPathError, VaultPasswordError,
+    VaultLoader,
+    VaultPasswordError,
+    VaultPathError,
+    load_yaml,
 )
 from PythonTools.log_helpers import LoggerFactory
 from PythonTools.parsing import load_yaml_with_substitution
 from PythonTools.system.env import get_environment, resolve_xdg
 from PythonTools.system.schemas import validate_config
 
-from .main_window import MainWindow
-from TaskScheduler import PROJECTNAME, VERSION
+from TaskScheduler import PROJECTNAME
 
+from .main_window import MainWindow
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
+
 
 def init_config(logctx: dict) -> dict:
     config = {}
@@ -40,11 +43,15 @@ def init_config(logctx: dict) -> dict:
     factory = logctx.get("factory", "")
     logger = factory.get_logger("Config")
     logger.info(f"Environment: {config.get('environment', {})}")
-    validate_environment(config.get("environment", {}), logctx)    
+    validate_environment(config.get("environment", {}), logctx)
     cfg = load_yaml(Path("etc/Project.yml"))
-    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Project", cfg)
+    cfg = validate_config(
+        PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Project", cfg
+    )
     distros = load_yaml(Path("etc/distros.yml"))
-    distros = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Distros", distros)
+    distros = validate_config(
+        PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Distros", distros
+    )
     project = cfg.get(PROJECTNAME, {})
     config["mode"] = project["mode"]
     for f in ["features", "gui", "safety", "install"]:
@@ -56,16 +63,15 @@ def init_config(logctx: dict) -> dict:
     for subsystem in ["cron", "systemd", "env_manager"]:
         features[subsystem] = features.get(subsystem) or {}
 
-
     env = config.get("environment", {})
     family = env.get("family")
     flavor = env.get("details", {}).get("flavor", {})
 
-    flavor_id = flavor.get("id")                  # opensuse-leap
-    id_like = flavor.get("id_like", "")           # "suse opensuse"
-    like_tokens = id_like.split()                 # ["suse", "opensuse"]
+    flavor_id = flavor.get("id")  # opensuse-leap
+    id_like = flavor.get("id_like", "")  # "suse opensuse"
+    like_tokens = id_like.split()  # ["suse", "opensuse"]
 
-    family_block = distros.get(family, {})        # distros["linux"]
+    family_block = distros.get(family, {})  # distros["linux"]
     logger.info("Determining OS and Distro")
     # 1. Direct match
     if flavor_id in family_block:
@@ -93,7 +99,7 @@ def init_config(logctx: dict) -> dict:
         "cron_tab": d.get("cron_tab_path"),
         "cron_log": d.get("cron_log_path"),
         "systemd_units": d.get("systemd_unit_path"),
-        "env_files": d.get("env_files", [])
+        "env_files": d.get("env_files", []),
     }
 
     # Normalize binaries
@@ -102,20 +108,18 @@ def init_config(logctx: dict) -> dict:
         "cron_daemon": d.get("cron_binaries", {}).get("cron_daemon"),
         "cron_service": d.get("cron_binaries", {}).get("cron_service"),
         "systemctl": d.get("systemd_binaries", {}).get("systemctl"),
-        "journalctl": d.get("systemd_binaries", {}).get("journalctl")
+        "journalctl": d.get("systemd_binaries", {}).get("journalctl"),
     }
 
     # Normalize distro block
     config["distro"] = {
-        "user": d.get("user",{}),
+        "user": d.get("user", {}),
         "supports_cron": d.get("supports_cron", False),
         "supports_systemd": d.get("supports_systemd", False),
         "supports_env": d.get("supports_env", False),
-
         "paths": paths,
         "binaries": binaries,
-
-        "package_manager": d.get("package_manager")
+        "package_manager": d.get("package_manager"),
     }
 
     logger.info(f"Distro normalized: {config['distro']}")
@@ -126,10 +130,13 @@ def init_config(logctx: dict) -> dict:
 # Logging
 # ---------------------------------------------------------------------------
 
+
 def init_logging() -> dict:
     cfg = load_yaml(Path("etc/Logs.yml"))
-    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Logs", cfg)
-    cfg = cfg.get("logs",{})
+    cfg = validate_config(
+        PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Logs", cfg
+    )
+    cfg = cfg.get("logs", {})
     log_cfg = {
         "path": Path(cfg.get("path", "")) / f"{PROJECTNAME}.log",
         "log_level": cfg.get("level", "INFO"),
@@ -139,7 +146,7 @@ def init_logging() -> dict:
         "console_stream": sys.stderr,
         "console_enabled": cfg.get("console_enabled", False),
         "color": cfg.get("color_enabled", False),
-        "include_stack_traces": cfg.get("include_stack_traces", False)
+        "include_stack_traces": cfg.get("include_stack_traces", False),
     }
 
     logger_factory = LoggerFactory(log_cfg=log_cfg, project_name=PROJECTNAME)
@@ -152,8 +159,9 @@ def init_logging() -> dict:
         "level": log_cfg.get("log_level"),
         "highlights": cfg.get("highlight_patterns", {}),
         "subsystems": cfg.get("subsystems", {}),
-        "gui": cfg.get("gui", {})
+        "gui": cfg.get("gui", {}),
     }
+
 
 # ---------------------------------------------------------------------------
 # Load Security
@@ -162,7 +170,9 @@ def load_security(logctx: dict):
     factory = logctx.get("factory", {})
     logger = factory.get_logger("Security")
     cfg = load_yaml_with_substitution("etc/security.yml")
-    cfg = validate_config(PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Security", cfg)
+    cfg = validate_config(
+        PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Security", cfg
+    )
     security = cfg.get("security", {})
     vault_cfg = security.get("vault", {})
     logger.info("Security File Successfully loaded")
@@ -184,20 +194,19 @@ def load_security(logctx: dict):
     loader = VaultLoader(
         vault_file=os.path.expanduser(vault_path),
         password_source=os.path.expanduser(password_file),
-        program_name=PROJECTNAME
+        program_name=PROJECTNAME,
     )
     secrets = loader.decrypt_yaml()
     policy = {
         "sudo": security.get("sudo", {}),
         "user_switching": security.get("user_switching", {}),
         "privilege_escalation": security.get("privilege_escalation", {}),
-        "password_policy": security.get("password_policy", {})
+        "password_policy": security.get("password_policy", {}),
     }
     logger.info("Config loaded with Security Policy and Secrets")
-    return {
-        "security": policy,
-        "secrets": secrets
-    }
+    return {"security": policy, "secrets": secrets}
+
+
 # ---------------------------------------------------------------------------
 # Load Users
 # ---------------------------------------------------------------------------
@@ -208,17 +217,17 @@ def load_users_cfg(config: dict, logctx: dict):
     paths = config.get("paths", {})
 
     # Resolve XDG roots
-    data_root = resolve_xdg("XDG_DATA_HOME",
-                            paths.get("data_root"),
-                            "~/.local/share/taskscheduler")
+    data_root = resolve_xdg(
+        "XDG_DATA_HOME", paths.get("data_root"), "~/.local/share/taskscheduler"
+    )
 
-    cache_root = resolve_xdg("XDG_CACHE_HOME",
-                             paths.get("temp_root"),
-                             "~/.cache/taskscheduler")
+    cache_root = resolve_xdg(
+        "XDG_CACHE_HOME", paths.get("temp_root"), "~/.cache/taskscheduler"
+    )
 
-    config_home = resolve_xdg("XDG_CONFIG_HOME",
-                              paths.get("config_root"),
-                              "~/.config/taskscheduler")
+    config_home = resolve_xdg(
+        "XDG_CONFIG_HOME", paths.get("config_root"), "~/.config/taskscheduler"
+    )
 
     # Users file location
     users_file = Path(config_home) / "users.yml"
@@ -230,8 +239,8 @@ def load_users_cfg(config: dict, logctx: dict):
             "paths": {
                 "data_root": data_root,
                 "cache_root": cache_root,
-                "config_home": config_home
-            }
+                "config_home": config_home,
+            },
         }
 
     logger.info(f"Loading users.yml from {users_file}")
@@ -242,16 +251,13 @@ def load_users_cfg(config: dict, logctx: dict):
     # Optional: validate against a Users.json schema if you create one
     try:
         users_cfg = validate_config(
-            PROJECTNAME.lower() if PROJECTNAME else "taskscheduler",
-            "Users",
-            users_cfg
+            PROJECTNAME.lower() if PROJECTNAME else "taskscheduler", "Users", users_cfg
         )
         logger.info("Users.yml validated successfully.")
     except Exception as e:
         logger.error(f"Users.yml validation failed: {e}")
         # Fail-safe: still load raw config
         # (You can choose to raise instead)
-        pass
 
     # Normalize user config
     users = users_cfg.get("users", {}) if isinstance(users_cfg, dict) else {}
@@ -263,9 +269,11 @@ def load_users_cfg(config: dict, logctx: dict):
         "paths": {
             "data_root": data_root,
             "cache_root": cache_root,
-            "config_home": config_home
-        }
+            "config_home": config_home,
+        },
     }
+
+
 def validate_environment(env, logger):
     # Python version check
     if env["python"]["version"] < (3, 12):
@@ -279,9 +287,11 @@ def validate_environment(env, logger):
             "This may cause incorrect environment modeling."
         )
 
+
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def main():
     logctx = init_logging()

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-13
+ Modified: 2026-11-17
  File: timerdeck/logic/cron_manager.py
  Version: 1.0.0
  Description: Description of this module
@@ -14,12 +14,15 @@
 import getpass
 import inspect
 
-from ..cron import CronEntry
-from TaskScheduler import PROJECTNAME
 from PythonTools.gui import LoggerMixin
 
+from TaskScheduler import PROJECTNAME
+
+from ..cron import CronEntry
+
+
 class CronManager(LoggerMixin):
-    def __init__(self, config: dict | None=None, logctx: dict | None=None):
+    def __init__(self, config: dict | None = None, logctx: dict | None = None):
         self.config = config or {}
         self._init_logger(logctx, "CRONMANAGER", PROJECTNAME)
         self.finalize_logging_wrappers()
@@ -76,7 +79,11 @@ class CronManager(LoggerMixin):
                     command = parts[5].strip()
                 else:
                     # Preceding comment
-                    pending_comment = (pending_comment + " " + body).strip() if pending_comment else body
+                    pending_comment = (
+                        (pending_comment + " " + body).strip()
+                        if pending_comment
+                        else body
+                    )
                     continue
 
             else:
@@ -109,12 +116,12 @@ class CronManager(LoggerMixin):
                 command=command,
                 comment=comment,
                 enabled=enabled,
-                source="user"
+                source="user",
             )
-            entry.daily = (entry.dom == "*" and entry.month == "*" and entry.dow == "*")
+            entry.daily = entry.dom == "*" and entry.month == "*" and entry.dow == "*"
             entry.boot = stripped.startswith("@reboot")
 
-            #if self.logctx and self.logctx.get("level") == "DEBUG":
+            # if self.logctx and self.logctx.get("level") == "DEBUG":
             #    fname = inspect.stack()[0].function
             #    self.logger.debug(f"{fname} entry = {entry}")
 
@@ -122,6 +129,7 @@ class CronManager(LoggerMixin):
             pending_comment = ""
 
         return parsed
+
     def parse_schedule(self, schedule: str):
         """
         Convert a cron schedule string into a CronEntry object.
@@ -136,11 +144,10 @@ class CronManager(LoggerMixin):
         minute, hour, dom, month, dow = parts[:5]
 
         return CronEntry(
-            minute = minute,
-            hour = hour,
-            dom = dom,
-            month = month,
-            dow = dow,
-            command = ""  # command will be filled in later
+            minute=minute,
+            hour=hour,
+            dom=dom,
+            month=month,
+            dow=dow,
+            command="",  # command will be filled in later
         )
-        

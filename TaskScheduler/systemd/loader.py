@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-05
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/systemd/loader.py
  Version: 1.0.0
  Description: Description of this module
@@ -14,19 +14,28 @@
 from pathlib import Path
 
 from PythonTools.net import local_command, sudo_run
+
 from .builder import (
-    build_timer_unit, build_service_unit, parse_systemd_unit,
-    parse_dropins, merge_timer_sections, merge_file_comments
+    build_service_unit,
+    build_timer_unit,
+    merge_file_comments,
+    merge_timer_sections,
+    parse_dropins,
+    parse_systemd_unit,
 )
 from .models import (
-    SystemdTimerUnit, SystemdTask, SystemdServiceUnit, 
-    build_schedule_descriptor, ParsedUnitSection, ParsedUnitFile
+    ParsedUnitSection,
+    SystemdServiceUnit,
+    SystemdTask,
+    SystemdTimerUnit,
+    build_schedule_descriptor,
 )
-from .visualizer import (
-    find_dropins
-)
+from .visualizer import find_dropins
 
-def load_timer_unit(name: str, user: bool, sudo_password: str | None, logger=None) -> SystemdTimerUnit | None:
+
+def load_timer_unit(
+    name: str, user: bool, sudo_password: str | None, logger=None
+) -> SystemdTimerUnit | None:
     timer_path = resolve_unit_path(name, user, sudo_password, logger)
     if logger:
         logger.debug(f"load_timer_unit timer_path={timer_path}")
@@ -45,10 +54,7 @@ def load_timer_unit(name: str, user: bool, sudo_password: str | None, logger=Non
     base_timer_section = parsed_base.sections.get("Timer")
     if not base_timer_section:
         base_timer_section = ParsedUnitSection(
-            name="Timer",
-            entries={},
-            comments_before=[],
-            comments_inline={}
+            name="Timer", entries={}, comments_before=[], comments_inline={}
         )
 
     # Merge timer sections
@@ -56,7 +62,11 @@ def load_timer_unit(name: str, user: bool, sudo_password: str | None, logger=Non
 
     # Build SystemdTimerUnit using merged timer section
     return build_timer_unit(name, parsed_base, merged_timer)
-def resolve_unit_path(name: str, user: bool, sudo_password: str | None, logger=None) -> Path | None:
+
+
+def resolve_unit_path(
+    name: str, user: bool, sudo_password: str | None, logger=None
+) -> Path | None:
     cmd = "systemctl "
     if user:
         cmd += "--user "
@@ -72,7 +82,11 @@ def resolve_unit_path(name: str, user: bool, sudo_password: str | None, logger=N
     path = path.strip()
 
     return Path(path) if path else None
-def load_systemd_task(timer: SystemdTimerUnit, user: bool, sudo_password: str | None, logger=None) -> SystemdTask | None:
+
+
+def load_systemd_task(
+    timer: SystemdTimerUnit, user: bool, sudo_password: str | None, logger=None
+) -> SystemdTask | None:
     # Determine service name
     svc_name = timer.unit or timer.name.replace(".timer", ".service")
     service = load_service_unit(svc_name, user, sudo_password, logger)
@@ -91,10 +105,7 @@ def load_systemd_task(timer: SystemdTimerUnit, user: bool, sudo_password: str | 
     if not base_timer_section:
         # No [Timer] section at all — create an empty one
         base_timer_section = ParsedUnitSection(
-            name="Timer",
-            entries={},
-            comments_before=[],
-            comments_inline={}
+            name="Timer", entries={}, comments_before=[], comments_inline={}
         )
 
     merged_timer = merge_timer_sections(base_timer_section, parsed_dropins)
@@ -111,15 +122,13 @@ def load_systemd_task(timer: SystemdTimerUnit, user: bool, sudo_password: str | 
         show_output=show_output,
         file_comments=merged_file_comments,
         dropins=dropin_paths,
-        fragment_path=timer.fragment_path
+        fragment_path=timer.fragment_path,
     )
 
     # Build final SystemdTask
-    return SystemdTask(
-        timer=timer,
-        service=service,
-        schedule=schedule
-    )
+    return SystemdTask(timer=timer, service=service, schedule=schedule)
+
+
 def run_systemd(cmd: str, user: bool, sudo_password: str | None, logger=None):
     """
     Unified runner for systemd commands.
@@ -135,7 +144,11 @@ def run_systemd(cmd: str, user: bool, sudo_password: str | None, logger=None):
     # system-level
     result = sudo_run(cmd, sudo_password, logger=logger)
     return result.msg, result.code, result.err
-def get_systemctl_show(name: str, user: bool, sudo_password: str | None, logger=None) -> dict[str, str]:
+
+
+def get_systemctl_show(
+    name: str, user: bool, sudo_password: str | None, logger=None
+) -> dict[str, str]:
     """
     Run `systemctl show` and return a dict of key/value pairs.
     """
@@ -163,7 +176,11 @@ def get_systemctl_show(name: str, user: bool, sudo_password: str | None, logger=
         logger.debug(f"systemctl show {name}: {result}")
 
     return result
-def load_service_unit(name: str, user: bool, sudo_password: str | None, logger=None) -> SystemdServiceUnit | None:
+
+
+def load_service_unit(
+    name: str, user: bool, sudo_password: str | None, logger=None
+) -> SystemdServiceUnit | None:
     svc_path = resolve_unit_path(name, user, sudo_password, logger)
     if logger:
         logger.debug(f"load_service_unit svc_path={svc_path}")
@@ -182,10 +199,7 @@ def load_service_unit(name: str, user: bool, sudo_password: str | None, logger=N
     base_service_section = parsed_base.sections.get("Service")
     if not base_service_section:
         base_service_section = ParsedUnitSection(
-            name="Service",
-            entries={},
-            comments_before=[],
-            comments_inline={}
+            name="Service", entries={}, comments_before=[], comments_inline={}
         )
 
     # Merge service sections
@@ -193,4 +207,3 @@ def load_service_unit(name: str, user: bool, sudo_password: str | None, logger=N
 
     # Build SystemdServiceUnit using merged service section
     return build_service_unit(name, parsed_base, merged_service)
-

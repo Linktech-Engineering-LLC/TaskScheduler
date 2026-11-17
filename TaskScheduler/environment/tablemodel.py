@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/environment/tablemodel.py
  Version: 1.0.0
  Description: Description of this module
@@ -14,10 +14,11 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QAbstractTableModel, Qt, QModelIndex
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtGui import QColor
 
 from .model import ResolvedEnvEntry, Status
+
 
 class EnvironmentTableModel(QAbstractTableModel):
     COLUMN_VARIABLE = 0

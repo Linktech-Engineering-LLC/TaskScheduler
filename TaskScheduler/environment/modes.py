@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/environment/modes.py
  Version: 1.0.0
  Description: Description of this module
@@ -17,6 +17,7 @@ from enum import Enum
 
 from .model import Status
 
+
 @dataclass
 class EnvDiffEntry:
     variable: str
@@ -24,6 +25,7 @@ class EnvDiffEntry:
     right_value: str | None
     left_status: Status | None
     right_status: Status | None
+
 
 class EnvironmentMode(Enum):
     USER = "user"

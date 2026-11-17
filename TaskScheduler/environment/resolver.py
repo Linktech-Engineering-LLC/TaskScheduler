@@ -6,18 +6,17 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/environment/resolver.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from dataclasses import dataclass
-from typing import List
 
-from .raw import Source, RawEnvEntry
+from .model import DiagnosticEntry, ResolvedEnvEntry, Status
 from .modes import EnvironmentMode
-from .model import ResolvedEnvEntry, Status, DiagnosticEntry
+from .raw import RawEnvEntry, Source
+
 
 class EnvironmentResolver:
     def __init__(self):
@@ -31,19 +30,17 @@ class EnvironmentResolver:
             Source.SYSTEMD_DROPIN: 7,
         }
 
-    def resolve(self, raw_entries: List[RawEnvEntry]) -> List[ResolvedEnvEntry]:
-        grouped: dict[str, List[RawEnvEntry]] = {}
+    def resolve(self, raw_entries: list[RawEnvEntry]) -> list[ResolvedEnvEntry]:
+        grouped: dict[str, list[RawEnvEntry]] = {}
 
         for entry in raw_entries:
             grouped.setdefault(entry.variable, []).append(entry)
 
-        resolved: List[ResolvedEnvEntry] = []
+        resolved: list[ResolvedEnvEntry] = []
 
         for variable, entries in grouped.items():
             sorted_entries = sorted(
-                entries,
-                key=lambda e: self.precedence_order[e.source],
-                reverse=True
+                entries, key=lambda e: self.precedence_order[e.source], reverse=True
             )
 
             winner = sorted_entries[0]
@@ -70,7 +67,7 @@ class EnvironmentResolver:
                         location=losing.location,
                         value=losing.value,
                         status=losing_status,
-                        comment=losing_comment
+                        comment=losing_comment,
                     )
                 )
 
@@ -81,7 +78,7 @@ class EnvironmentResolver:
                     status=winner_status,
                     source=winner.source,
                     comment=self._auto_comment_winner(winner, diagnostics),
-                    diagnostics=diagnostics
+                    diagnostics=diagnostics,
                 )
             )
 
@@ -96,14 +93,19 @@ class EnvironmentResolver:
             Source.SYSTEMD_FILE,
         }:
             return True
-        if winner.source == Source.SYSTEMD_UNIT and losing.source == Source.SYSTEMD_FILE:
+        if (
+            winner.source == Source.SYSTEMD_UNIT
+            and losing.source == Source.SYSTEMD_FILE
+        ):
             return True
         return False
 
     # --- auto comments ---
 
     def _auto_comment_mask(self, winner: RawEnvEntry, losing: RawEnvEntry) -> str:
-        return f"Masked by {winner.source.name.lower()} at {winner.location or 'unknown'}"
+        return (
+            f"Masked by {winner.source.name.lower()} at {winner.location or 'unknown'}"
+        )
 
     def _auto_comment_shadow(self, winner: RawEnvEntry, losing: RawEnvEntry) -> str:
         return f"Shadowed by equal-precedence {winner.source.name.lower()}"
@@ -125,10 +127,7 @@ class EnvironmentResolver:
         raw_entries: list[RawEnvEntry],
         mode: EnvironmentMode,
     ) -> list[ResolvedEnvEntry]:
-        filtered = [
-            e for e in raw_entries
-            if self._include_in_mode(e.source, mode)
-        ]
+        filtered = [e for e in raw_entries if self._include_in_mode(e.source, mode)]
         return self.resolve(filtered)
 
     def _include_in_mode(self, source: Source, mode: EnvironmentMode) -> bool:

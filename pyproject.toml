@@ -23,3 +23,13 @@ TaskScheduler = "TaskScheduler.TaskScheduler:main"
 [tool.setuptools.packages.find]
 exclude = ["data*", "Logs*", "archive*"]
 include = ["TaskScheduler"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+[tool.ruff.lint]
+ignore = [
+    "BLE001",
+    "SIM103",
+    "N999",
+]

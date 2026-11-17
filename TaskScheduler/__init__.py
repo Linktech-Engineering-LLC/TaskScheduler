@@ -6,12 +6,12 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-07
+ Modified: 2026-11-17
  File: timerdeck/__init__.py
  Version: 1.0.0
  Description: Description of this module
 """
-from importlib.metadata import metadata, PackageNotFoundError
+from importlib.metadata import PackageNotFoundError, metadata
 
 from PythonTools.utils import read_toml
 
@@ -21,11 +21,9 @@ try:
     VERSION = PROGMETA.get("version")
 except PackageNotFoundError:
     from PythonTools.utils import read_toml
+
     proj = read_toml("pyproject.toml")["project"]
     PROJECTNAME = proj["name"]
     VERSION = proj["version"]
 
-__all__ = [
-    "PROJECTNAME",
-    "VERSION"
-]
+__all__ = ["PROJECTNAME", "VERSION"]

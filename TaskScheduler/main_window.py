@@ -14,40 +14,35 @@
 
 import getpass
 
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QSplitter,
-    QStackedWidget, QLabel, QMessageBox,
-    QDockWidget
-)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
+from PySide6.QtWidgets import (
+    QDockWidget,
+    QLabel,
+    QMainWindow,
+    QMessageBox,
+    QSplitter,
+    QStackedWidget,
+    QWidget,
+)
+from PythonTools.gui import QtLoggerMixin
+from PythonTools.sessions import LocalSession
 
 from TaskScheduler import PROJECTNAME, VERSION
+
 from .cron import CronJobEditor
-from .environment import (
-    EnvironmentController,
-    EnvironmentTableModel,
-    EnvironmentMode
-)
+from .environment import EnvironmentController, EnvironmentMode, EnvironmentTableModel
 from .helpers import distro
-from .logic import (
-    CronManager,
-    EnvManager,
-    HostManager,
-    SystemdManager,
-    UserManager
-)
+from .logic import CronManager, EnvManager, HostManager, SystemdManager, UserManager
 from .services import UserDiscoveryService
 from .systemd.gui.systemd_tasks_window import SystemdTasksWindow
-from .ui.widgets import icon
 from .ui.widgets import (
     CronTableWidget,
     DashboardWidget,
+    EnvironmentWidget,  # ⭐ You will need this widget
     SidebarWidget,
-    EnvironmentWidget  # ⭐ You will need this widget
+    icon,
 )
-from PythonTools.gui import QtLoggerMixin
-from PythonTools.sessions import LocalSession, SSHSession
 
 
 class MainWindow(QMainWindow, QtLoggerMixin):
@@ -78,24 +73,18 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.cron_config = self.features.get("cron", {}).copy()
 
         # --- Capability Flags ---
-        self.can_view_cron = (
-            self.features.get("cron", {}).get("enabled", False)
-            and distro.supports_cron(self.distro)
-        )
-        self.can_view_systemd = (
-            self.features.get("systemd", {}).get("enabled", False)
-            and distro.supports_systemd(self.distro)
-        )
-        self.can_view_env = (
-            self.features.get("env_manager", {}).get("enabled", False)
-            and distro.supports_env(self.distro)
-        )
+        self.can_view_cron = self.features.get("cron", {}).get(
+            "enabled", False
+        ) and distro.supports_cron(self.distro)
+        self.can_view_systemd = self.features.get("systemd", {}).get(
+            "enabled", False
+        ) and distro.supports_systemd(self.distro)
+        self.can_view_env = self.features.get("env_manager", {}).get(
+            "enabled", False
+        ) and distro.supports_env(self.distro)
 
         # --- Managers ---
-        self.cron_manager = CronManager(
-            config=self.cron_config,
-            logctx=self.logctx
-        )
+        self.cron_manager = CronManager(config=self.cron_config, logctx=self.logctx)
         self.env_manager = EnvManager()
         self.host_manager = HostManager()
         self.user_manager = UserManager()
@@ -105,8 +94,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         # --- Services ---
         self.user_service = UserDiscoveryService(
-            user_config=self.distro.get("user", {}),
-            logctx=self.logctx
+            user_config=self.distro.get("user", {}), logctx=self.logctx
         )
         # --- Active User ---
         users = self.user_manager.get_users()
@@ -163,7 +151,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
 
         # Sidebar
         self._create_sidebar()
-    
+
         dock = QDockWidget("Sidebar", self)
         dock.setWidget(self.sidebar)
         dock.setTitleBarWidget(QWidget())
@@ -178,17 +166,21 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.dashboard.set_capabilities(
             cron=self.can_view_cron,
             systemd=self.can_view_systemd,
-            env=self.can_view_env
+            env=self.can_view_env,
         )
         self.stack.addWidget(self.dashboard)
 
         # Systemd placeholder
-        self.systemd_placeholder = QLabel("Systemd Tasks\n\nSystemd task management will appear here.")
+        self.systemd_placeholder = QLabel(
+            "Systemd Tasks\n\nSystemd task management will appear here."
+        )
         self.systemd_placeholder.setAlignment(Qt.AlignCenter)
         self.stack.addWidget(self.systemd_placeholder)
 
         # Cron Table
-        self.cron_table = CronTableWidget(config=self.features.get("cron", {}), logctx=self.logctx)
+        self.cron_table = CronTableWidget(
+            config=self.features.get("cron", {}), logctx=self.logctx
+        )
         self.stack.addWidget(self.cron_table)
 
         # Environment View ⭐
@@ -276,12 +268,10 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.sidebar.saveRequested.connect(self.on_save_requested)
         self.sidebar.cancelRequested.connect(self.on_cancel_requested)
         self.sidebar.userChanged.connect(self.on_user_changed)
-        
+
         # Cron table
         self.cron_table.itemDoubleClicked.connect(self.on_cron_row_double_clicked)
-        self.cron_table.itemSelectionChanged.connect(
-            self._update_sidebar_editability
-        )
+        self.cron_table.itemSelectionChanged.connect(self._update_sidebar_editability)
 
     # ============================================================
     # View Switching
@@ -317,7 +307,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             self.cron_rows = self.cron_manager.load_user_cron(
                 user=self.active_user,
                 session=LocalSession(logger=self.logger),
-                needs_sudo=(self.active_user != getpass.getuser())
+                needs_sudo=(self.active_user != getpass.getuser()),
             )
         else:
             self.cron_rows = self.cron_manager.load_system_cron()
@@ -328,18 +318,16 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.clear_cron_selection()
         self.stack.setCurrentIndex(self.VIEW_CRON)
         self.active_editor = "cron"
-    
+
     # ============================================================
     # Dashboard Refresh
     # ============================================================
     def refresh_dashboard(self):
         user = self.active_user
-        needs_sudo = (self.sidebar.user_selector.currentText() != getpass.getuser())
+        needs_sudo = self.sidebar.user_selector.currentText() != getpass.getuser()
 
         self.cron_rows = self.cron_manager.load_user_cron(
-            user=user,
-            session=LocalSession(logger=self.logger),
-            needs_sudo=needs_sudo
+            user=user, session=LocalSession(logger=self.logger), needs_sudo=needs_sudo
         )
         self.dashboard.set_cron_tasks(self.cron_rows)
 
@@ -413,7 +401,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             self.cron_dirty = True
             self.cron_table.populate(self.cron_rows)
         self.clear_cron_selection()
-                
+
     def edit_cron_job(self):
         row = self.cron_table.currentRow()
         if row < 0:
@@ -426,7 +414,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             self.cron_dirty = True
             self.cron_table.populate(self.cron_rows)
         self.clear_cron_selection()
-                    
+
     def delete_cron_job(self):
         row = self.cron_table.currentRow()
         if row < 0:
@@ -441,7 +429,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
                 f"Comment: {entry.comment}"
             ),
             QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No
+            QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
@@ -449,10 +437,12 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.cron_dirty = True
         self.cron_table.populate(self.cron_rows)
         self.clear_cron_selection()
-        
+
     def write_crontab(self):
         """⭐ Placeholder for temp-file → validate → save logic."""
-        self.logger.info("write_crontab() called — implement cron saving workflow here.")
+        self.logger.info(
+            "write_crontab() called — implement cron saving workflow here."
+        )
 
     # ============================================================
     # Systemd CRUD (stubs)
@@ -509,7 +499,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             self,
             "Exit TimerDeck",
             "Are you sure you want to exit TimerDeck?",
-            QMessageBox.Yes | QMessageBox.No
+            QMessageBox.Yes | QMessageBox.No,
         )
         if reply == QMessageBox.Yes:
             self.logger.info("Closed Main Window")
@@ -542,19 +532,13 @@ class MainWindow(QMainWindow, QtLoggerMixin):
                 self.sidebar.set_actions_visible(editable)
                 if editable:
 
-                    row_selected = (
-                        self.cron_table.selectionModel().hasSelection()
-                    )
+                    row_selected = self.cron_table.selectionModel().hasSelection()
                     self.sidebar.set_new_enabled(True)
                     self.sidebar.set_actions_enabled(row_selected)
-                    move_visible = (
-                        self.features.get("systemd", {}).get("enabled", False)
-                        and self.distro.get("supports_systemd", True)
-                    )
-                    move_enabled = (
-                        move_visible
-                        and row_selected
-                    )
+                    move_visible = self.features.get("systemd", {}).get(
+                        "enabled", False
+                    ) and self.distro.get("supports_systemd", True)
+                    move_enabled = move_visible and row_selected
                     self.sidebar.set_move_visible(move_visible)
                     self.sidebar.set_move_enabled(move_enabled)
                     if move_visible:
@@ -564,10 +548,9 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             case "systemd":
                 editable = self.features.get("systemd", {}).get("editable", True)
                 self.sidebar.set_actions_enabled(editable)
-                move_enabled = (
-                    self.features.get("cron", {}).get("enabled", False)
-                    and self.distro.get("supports_cron", True)
-                )
+                move_enabled = self.features.get("cron", {}).get(
+                    "enabled", False
+                ) and self.distro.get("supports_cron", True)
                 self.sidebar.set_move_enabled(move_enabled)
                 self.sidebar.set_move_visible(True)
                 self.sidebar.set_move_label("Move to Cron")
@@ -595,12 +578,9 @@ class MainWindow(QMainWindow, QtLoggerMixin):
             users=users,
             hosts=self.host_manager.get_hosts(),
             config=self.config,
-            logctx=self.logctx
+            logctx=self.logctx,
         )
-        self.active_user = (
-            self.sidebar.user_selector.currentText()
-            or self.active_user
-        )
+        self.active_user = self.sidebar.user_selector.currentText() or self.active_user
         self.sidebar.set_actions_visible(False)
         self.logger.debug("_create_sidebar: done")
 
@@ -612,7 +592,7 @@ class MainWindow(QMainWindow, QtLoggerMixin):
                 self.save_systemd_tasks()
             case "env":
                 self.save_env_vars()
-        
+
     def on_cancel_requested(self):
         match self.active_view:
             case "cron":
@@ -633,4 +613,3 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.cron_table.clearSelection()
         self.cron_table.clearFocus()
         self._update_sidebar_editability()
-                            

@@ -6,18 +6,20 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/ui/widgets/cards.py
  Version: 1.0.0
  Description: Description of this module
 """
 
 from pathlib import Path
-from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
+
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
 ICONS_DIR = Path(__file__).parents[1] / "icons"
+
 
 def icon(name: str) -> QIcon:
     return QIcon(str(ICONS_DIR / name))

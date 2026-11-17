@@ -6,27 +6,34 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-11-15
+ Modified: 2026-11-17
  File: taskscheduler/ui/widgets/dashboard.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QGroupBox, QTableWidget,
-    QTableWidgetItem, QHeaderView, QScrollArea,
-    QTableView
-)
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QGroupBox,
+    QHeaderView,
+    QScrollArea,
+    QTableView,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+from PythonTools.gui import QtLoggerMixin
 
 from TaskScheduler import PROJECTNAME
-from ...models import SchedulerCapabilities, EnvironmentViewModel
 
-from PythonTools.gui import QtLoggerMixin
+from ...models import EnvironmentViewModel, SchedulerCapabilities
 
 
 class DashboardWidget(QWidget, QtLoggerMixin):
-    def __init__(self, parent=None, config: dict | None = None, logctx: dict | None = None):
+    def __init__(
+        self, parent=None, config: dict | None = None, logctx: dict | None = None
+    ):
         super().__init__(parent)
         self.cron_enable = False
         self.systemd_enable = False
@@ -38,24 +45,30 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
         self.config = config or {}
 
-        self.env      = self.config.get("environment") or {}
-        self.distro   = self.config.get("distro") or {}
+        self.env = self.config.get("environment") or {}
+        self.distro = self.config.get("distro") or {}
         self.features = self.config.get("features") or {}
-        self.mode     = self.config.get("mode") or "unknown"
+        self.mode = self.config.get("mode") or "unknown"
 
         missing = []
-        if not self.env: missing.append("environment")
-        if not self.distro: missing.append("distro")
-        if not self.features: missing.append("features")
-        if self.mode == "unknown": missing.append("mode")
+        if not self.env:
+            missing.append("environment")
+        if not self.distro:
+            missing.append("distro")
+        if not self.features:
+            missing.append("features")
+        if self.mode == "unknown":
+            missing.append("mode")
 
         if missing:
             self.logger.warning(f"Dashboard config missing or null keys: {missing}")
         elif self.logctx and self.logctx.get("level") == "DEBUG":
             self.logger.debug(f"distro: {self.distro}")
             self.logger.debug(f"features: {self.features}")
-            
-        self.scheduler_caps = SchedulerCapabilities(self.env, self.distro, self.features)
+
+        self.scheduler_caps = SchedulerCapabilities(
+            self.env, self.distro, self.features
+        )
         self.env_vm = EnvironmentViewModel(self.env, self.distro, self.mode)
 
         layout = QVBoxLayout(self)
@@ -63,15 +76,14 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
         # --- Cron Tasks ---
         self.cron_table = self._make_table(
-            title="Cron Tasks",
-            headers=["Schedule", "Command", "Comment"]
+            title="Cron Tasks", headers=["Schedule", "Command", "Comment"]
         )
         layout.addWidget(self.cron_table)
 
         # --- Systemd Tasks ---
         self.systemd_table = self._make_table(
             title="Systemd Tasks",
-            headers=["Timer", "Service", "Next Run", "Last Run", "Status"]
+            headers=["Timer", "Service", "Next Run", "Last Run", "Status"],
         )
         layout.addWidget(self.systemd_table)
 
@@ -93,7 +105,7 @@ class DashboardWidget(QWidget, QtLoggerMixin):
         header = table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setStretchLastSection(True)
-        
+
         table.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
         # Scroll area
@@ -107,6 +119,7 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
         group.table = table
         return group
+
     def _make_env_table(self, title):
         group = QGroupBox(title)
 
@@ -168,6 +181,7 @@ class DashboardWidget(QWidget, QtLoggerMixin):
         # If env_model doesn't exist yet, create an empty one
         if not hasattr(self, "env_model"):
             from TaskScheduler.environment import EnvironmentTableModel
+
             self.env_model = EnvironmentTableModel([])
 
         # Replace entries with empty list
@@ -175,6 +189,7 @@ class DashboardWidget(QWidget, QtLoggerMixin):
 
         # Push empty model into the UI
         self.set_environment_model(self.env_model)
+
     def set_capabilities(self, cron: bool, systemd: bool, env: bool):
         self.cron_enable = cron
         self.systemd_enable = systemd

@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-01
- Modified: 2026-10-07
+ Modified: 2026-11-17
  File: taskscheduler/systemd/gui/systemd_tasks_window.py
  Version: 1.0.0
  Description: Description of this module
@@ -14,16 +14,19 @@
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, 
-    QTableWidget, QTableWidgetItem, QSizePolicy
+    QLabel,
+    QSizePolicy,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
 )
+from PythonTools.gui import QtLoggerMixin
 
 from TaskScheduler import PROJECTNAME
-from ..discovery import discover_systemd_tasks
-from .visualizer_widget import CalendarVisualizerWidget
-from .monotonic_visualizer_widget import MonotonicVisualizerWidget
 
-from PythonTools.gui import QtLoggerMixin
+from ..discovery import discover_systemd_tasks
+
 
 class SystemdTasksWindow(QWidget, QtLoggerMixin):
     def __init__(self, parent=None, logctx: dict | None = None):
@@ -43,9 +46,17 @@ class SystemdTasksWindow(QWidget, QtLoggerMixin):
         # Table of tasks
         self.table = QTableWidget()
         self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels([
-            "Timer", "Service", "Command", "Next Run", "Last Run", "Status", "Comments"
-        ])
+        self.table.setHorizontalHeaderLabels(
+            [
+                "Timer",
+                "Service",
+                "Command",
+                "Next Run",
+                "Last Run",
+                "Status",
+                "Comments",
+            ]
+        )
         layout.addWidget(self.table)
 
         # Load data
@@ -64,5 +75,9 @@ class SystemdTasksWindow(QWidget, QtLoggerMixin):
             self.table.setItem(row, 1, QTableWidgetItem(task.service.name))
             self.table.setItem(row, 2, QTableWidgetItem(task.timer.next_run or "—"))
             self.table.setItem(row, 3, QTableWidgetItem(task.timer.last_run or "—"))
-            self.table.setItem(row, 4, QTableWidgetItem(task.timer.description or "active"))
-            self.table.setItem(row, 5, QTableWidgetItem(", ".join(task.schedule.comments)))
+            self.table.setItem(
+                row, 4, QTableWidgetItem(task.timer.description or "active")
+            )
+            self.table.setItem(
+                row, 5, QTableWidgetItem(", ".join(task.schedule.comments))
+            )

@@ -6,14 +6,15 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/environment/diff.py
  Version: 1.0.0
  Description: Description of this module
 """
 
-from .modes import EnvDiffEntry
 from .model import ResolvedEnvEntry
+from .modes import EnvDiffEntry
+
 
 class EnvironmentDiffEngine:
     def diff(
@@ -48,4 +49,3 @@ class EnvironmentDiffEngine:
                 )
 
         return diffs
-

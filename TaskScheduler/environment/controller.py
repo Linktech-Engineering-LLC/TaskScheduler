@@ -6,20 +6,20 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/environment/controller.py
  Version: 1.0.0
  Description: Description of this module
 """
 
+from .model import ResolvedEnvEntry
+from .modes import EnvironmentMode
 from .resolver import EnvironmentResolver
+from .scanner.cron import CronScanner
 from .scanner.process import ProcessScanner
 from .scanner.system import SystemScanner
-from .scanner.user import UserScanner
-from .scanner.cron import CronScanner
 from .scanner.systemd import SystemdScanner
-from .modes import EnvironmentMode
-from .model import ResolvedEnvEntry
+from .scanner.user import UserScanner
 
 
 class EnvironmentController:

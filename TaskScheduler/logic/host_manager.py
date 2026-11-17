@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-25
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: timerdeck/logic/host_manager.py
  Version: 1.0.0
  Description: Description of this module
@@ -14,11 +14,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Leon
 
-import socket
 import fnmatch
+import socket
 from pathlib import Path
-
-from PythonTools.net.ssh import is_ssh_reachable
 
 
 class HostManager:
@@ -107,7 +105,7 @@ class HostManager:
         # Normalize everything to lowercase for case-insensitive matching
         base_hosts = [h.lower() for h in base_hosts]
         patterns = [p.lower() for p in patterns]
-    
+
         # No SSH config → return base hosts unchanged
         if not patterns:
             return base_hosts

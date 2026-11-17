@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-10-05
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: taskscheduler/environment/raw.py
  Version: 1.0.0
  Description: Description of this module
@@ -16,6 +16,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
+
 class Source(Enum):
     PROCESS = 1
     SYSTEM = 2
@@ -24,6 +25,7 @@ class Source(Enum):
     SYSTEMD_FILE = 5
     SYSTEMD_UNIT = 6
     SYSTEMD_DROPIN = 7
+
 
 @dataclass
 class RawEnvEntry:

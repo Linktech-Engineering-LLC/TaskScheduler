@@ -6,11 +6,12 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-26
- Modified: 2026-10-05
+ Modified: 2026-11-17
  File: timerdeck/logic/env_manager.py
  Version: 1.0.0
  Description: Description of this module
 """
+
 
 class EnvManager:
     def load_env(self, user, scope, ssh_manager=None):

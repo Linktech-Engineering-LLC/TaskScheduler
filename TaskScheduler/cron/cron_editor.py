@@ -12,14 +12,35 @@
  Description: Description of this module
 """
 
-from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QLabel, QPushButton, QLineEdit, QCheckBox, QComboBox,
-    QGroupBox, QWidget, QSizePolicy, QMessageBox
-)
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QGridLayout,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
-from .cron_entry import CronEntry
+from .cron_entry import (
+    DAYS,
+    HOURS,
+    MINUTES,
+    MONTHS,
+    PRESETS,
+    WEEKDAYS,
+    CronEntry,
+    CronField,
+)
+
+
 class CronJobEditor(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -61,36 +82,37 @@ class CronJobEditor(QDialog):
         top_layout.addLayout(opt_layout, 2, 0, 1, 2)
         main.addWidget(top_group)
 
-        # --- Middle section: 3-column grid ---
+        # ------------------------------------------------------------
+        # Schedule Layout
+        # ------------------------------------------------------------
         middle = QGridLayout()
 
-        # Left column: Months
+        # Left Column
         self.months_group = self._make_months_group()
-        middle.addWidget(self.months_group, 0, 0)
-
-        # Middle column: Days of Month + Days of Week
         self.days_group = self._make_days_group()
         self.weekdays_group = self._make_weekdays_group()
 
-        mid_col = QVBoxLayout()
-        mid_col.addWidget(self.days_group)
-        mid_col.addWidget(self.weekdays_group)
+        middle.addWidget(self.months_group, 0, 0)
+        middle.addWidget(self.days_group, 1, 0)
+        middle.addWidget(self.weekdays_group, 2, 0)
 
-        mid_widget = QWidget()
-        mid_widget.setLayout(mid_col)
-        middle.addWidget(mid_widget, 0, 1)
+        # ------------------------------------------------------------
+        # Right Column - Time
+        # ------------------------------------------------------------
+        time_group = QGroupBox("Time")
+        time_layout = QVBoxLayout(time_group)
 
-        # Right column: Hours + Minutes
         self.hours_group = self._make_hours_group()
         self.minutes_group = self._make_minutes_group()
 
-        right_col = QVBoxLayout()
-        right_col.addWidget(self.hours_group)
-        right_col.addWidget(self.minutes_group)
+        time_layout.addWidget(self.hours_group)
+        time_layout.addWidget(self.minutes_group)
 
-        right_widget = QWidget()
-        right_widget.setLayout(right_col)
-        middle.addWidget(right_widget, 0, 2)
+        middle.addWidget(time_group, 0, 1, 3, 1)  # row, column  # rowspan, colspan
+
+        # Give more room to Time
+        middle.setColumnStretch(0, 2)
+        middle.setColumnStretch(1, 3)
 
         main.addLayout(middle)
 
@@ -107,106 +129,94 @@ class CronJobEditor(QDialog):
 
         ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
+        self.daily_box.toggled.connect(self._daily_changed)
+        self.boot_box.toggled.connect(self._boot_changed)
+        self.update_controls()
 
     # Helper methods for compact grids
-    def _make_grid_group(self, title, labels, columns):
-        group = QGroupBox(title)
+    def _make_grid_group(self, field: CronField, show_title: bool = True):
+        if show_title:
+            group = QGroupBox(field.name)
+        else:
+            group = QWidget()
+
         layout = QGridLayout(group)
         buttons = []
 
-        for i, label in enumerate(labels):
+        for i, label in enumerate(field.labels):
             btn = QPushButton(str(label))
+            btn.cron_value = field.values[i]
             btn.setCheckable(True)
-
-            if str(label).isdigit():
-                btn.setFixedWidth(32)
-                btn.setFixedHeight(26)
-            else:
-                btn.setMinimumWidth(70)
-                btn.setFixedHeight(28)
-            btn.cron_value = str(label)
+            if field.expanding:
+                btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            elif field.button_width:
+                btn.setFixedWidth(field.button_width)
+            btn.setFixedHeight(field.button_height)
             btn.setToolTip(f"Cron Value: {btn.cron_value}")
-            layout.addWidget(btn, i // columns, i % columns)
+            layout.addWidget(btn, i // field.columns, i % field.columns)
             buttons.append(btn)
 
         set_all = QPushButton("Set All")
         set_all.setToolTip("Click to set all in group")
         set_all.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        layout.addWidget(set_all, (len(labels) // columns) + 1, 0, 1, columns)
+        layout.addWidget(
+            set_all, (len(field.labels) // field.columns) + 1, 0, 1, field.columns
+        )
+
+        layout.setRowStretch((len(field.labels) // field.columns) + 2, 1)
         set_all.clicked.connect(lambda: [b.setChecked(True) for b in buttons])
 
         group.buttons = buttons
         return group
 
-    def _assign_month_values(self, group):
-        for i, btn in enumerate(group.buttons):
-            btn.cron_value = str(i + 1)
-            btn.setToolTip(f"Cron Value: {btn.cron_value}")
-
-    def _assign_weekday_values(self, group):
-        for i, btn in enumerate(group.buttons):
-            btn.cron_value = str(i)
-            btn.setToolTip(f"Cron Value: {btn.cron_value}")
-
     def _make_months_group(self):
-        months = [
-            "January", "February", "March", "April",
-            "May", "June", "July", "August",
-            "September", "October", "November", "December"
-        ]
-
-        group = self._make_grid_group("Months", months, columns=2)
-        self._assign_month_values(group)
+        group = self._make_grid_group(MONTHS)
         return group
 
     def _make_days_group(self):
-        days = list(range(1, 32))
-        return self._make_grid_group("Days of Month", days, columns=7)
+        return self._make_grid_group(DAYS)
 
     def _make_weekdays_group(self):
-        weekdays = [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday"
-        ]
-
-        group = self._make_grid_group("Days of Week", weekdays, columns=4)
-        self._assign_weekday_values(group)
-        return group
+        return self._make_grid_group(WEEKDAYS)
 
     def _make_hours_group(self):
-        hours = list(range(0, 24))
-        return self._make_grid_group("Hours", hours, columns=12)
+        return self._make_grid_group(HOURS)
 
     def _make_minutes_group(self):
         group = QGroupBox("Minutes")
         layout = QVBoxLayout(group)
 
-        grid = self._make_grid_group("Minute Selection", list(range(0, 60, 5)), columns=6)
+        grid = self._make_grid_group(MINUTES, show_title=False)
+
         layout.addWidget(grid)
 
-        preset = QComboBox()
-        preset.addItems([
-            "Custom selection",
-            "Each minute",
-            "Every 2 minutes",
-            "Every 5 minutes",
-            "Every 10 minutes",
-            "Every 15 minutes",
-            "Every 30 minutes"
-        ])
-        preset.setToolTip("Quickly select common minute intervals")
         layout.addWidget(QLabel("Preselection:"))
-        layout.addWidget(preset)
 
-        # ⭐ Store the grid so set_cron_entry() can access it
+        combo = QComboBox()
+        for index, preset in enumerate(PRESETS):
+            combo.addItem(preset.name, preset)
+
+            combo.setItemData(index, preset.tooltip, Qt.ToolTipRole)
+        combo.setToolTip("Quickly select common minute intervals")
+
+        layout.addWidget(combo)
+
+        combo.currentIndexChanged.connect(self._preset_changed)
+
         group.minute_grid = grid
+        group.minute_preset = combo
 
         return group
+
+    def _preset_changed(self, index: int):
+        preset = self.minutes_group.minute_preset.currentData()
+
+        if preset.interval == 0:
+            return
+
+        for btn in self.minutes_group.minute_grid.buttons:
+            value = int(btn.cron_value)
+            btn.setChecked(preset.applies(value))
 
     def set_cron_entry(self, entry):
         self.entry = entry
@@ -222,8 +232,7 @@ class CronJobEditor(QDialog):
         # --- Months ---
         for btn in self.months_group.buttons:
             btn.setChecked(
-                entry.month == "*" or
-                btn.cron_value in entry.month.split(",")
+                entry.month == "*" or btn.cron_value in entry.month.split(",")
             )
 
         # --- Days of Month ---
@@ -232,32 +241,21 @@ class CronJobEditor(QDialog):
 
         # --- Days of Week ---
         for btn in self.weekdays_group.buttons:
-            btn.setChecked(
-                entry.dow == "*" or
-                btn.cron_value in entry.dow.split(",")
-            )
+            btn.setChecked(entry.dow == "*" or btn.cron_value in entry.dow.split(","))
 
         # --- Hours ---
         for btn in self.hours_group.buttons:
-            btn.setChecked(
-                entry.hour == "*" or
-                btn.cron_value in entry.hour.split(",")
-            )
-    
+            btn.setChecked(entry.hour == "*" or btn.cron_value in entry.hour.split(","))
+
         # --- Minutes ---
         minute_buttons = self.minutes_group.minute_grid.buttons
         for btn in minute_buttons:
             btn.setChecked(
-                entry.minute == "*" or
-                btn.cron_value in entry.minute.split(",")
+                entry.minute == "*" or btn.cron_value in entry.minute.split(",")
             )
 
     def _selected_values(self, buttons):
-        values = [
-            btn.cron_value
-            for btn in buttons
-            if btn.isChecked()
-        ]
+        values = [btn.cron_value for btn in buttons if btn.isChecked()]
 
         if len(values) == len(buttons):
             return "*"
@@ -273,9 +271,7 @@ class CronJobEditor(QDialog):
             return True
 
         QMessageBox.warning(
-            self,
-            "Validation Error",
-            f"At least one {name} value must be selected."
+            self, "Validation Error", f"At least one {name} value must be selected."
         )
 
         return False
@@ -283,20 +279,12 @@ class CronJobEditor(QDialog):
     def accept(self):
 
         if not self.command_edit.text().strip():
-            QMessageBox.warning(
-                self,
-                "Validation Error",
-                "Command is required."
-            )
+            QMessageBox.warning(self, "Validation Error", "Command is required.")
             self.command_edit.setFocus()
             return
 
         if not self.comment_edit.text().strip():
-            QMessageBox.warning(
-                self,
-                "Validation Error",
-                "Comment is required."
-            )
+            QMessageBox.warning(self, "Validation Error", "Comment is required.")
             self.comment_edit.setFocus()
             return
 
@@ -316,34 +304,37 @@ class CronJobEditor(QDialog):
 
     def get_cron_entry(self) -> CronEntry:
         return CronEntry(
-            minute=self._selected_values(
-                self.minutes_group.minute_grid.buttons
-            ),
-            hour=self._selected_values(
-                self.hours_group.buttons
-            ),
-            dom=self._selected_values(
-                self.days_group.buttons
-            ),
-            month=self._selected_values(
-                self.months_group.buttons
-            ),
-            dow=self._selected_values(
-                self.weekdays_group.buttons
-            ),
+            minute=self._selected_values(self.minutes_group.minute_grid.buttons),
+            hour=self._selected_values(self.hours_group.buttons),
+            dom=self._selected_values(self.days_group.buttons),
+            month=self._selected_values(self.months_group.buttons),
+            dow=self._selected_values(self.weekdays_group.buttons),
             command=self.command_edit.text().strip(),
             comment=self.comment_edit.text().strip(),
             enabled=self.enable_box.isChecked(),
             daily=self.daily_box.isChecked(),
             boot=self.boot_box.isChecked(),
         )
-    def crontab_line(self) -> str:
-        return (
-            f"{self.minute} "
-            f"{self.hour} "
-            f"{self.dom} "
-            f"{self.month} "
-            f"{self.dow} "
-            f"{self.command}"
-        )
-   
+
+    def _daily_changed(self, checked):
+        if checked:
+            self.boot_box.setChecked(False)
+        self.update_controls()
+
+    def _boot_changed(self, checked):
+        if checked:
+            self.daily_box.setChecked(False)
+        self.update_controls()
+
+    def update_controls(self):
+        daily = self.daily_box.isChecked()
+        boot = self.boot_box.isChecked()
+
+        # Daily mode
+        self.months_group.setEnabled(not daily and not boot)
+        self.days_group.setEnabled(not daily and not boot)
+        self.weekdays_group.setEnabled(not daily and not boot)
+
+        # Boot mode
+        self.hours_group.setEnabled(not boot)
+        self.minutes_group.setEnabled(not boot)
