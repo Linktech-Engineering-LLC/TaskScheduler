@@ -6,13 +6,15 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-05-16
- Modified: 2026-11-17
+ Modified: 2026-11-18
  File: taskscheduler/ui/main_window.py
  Version: 1.0.1
  Description: Main Window Orchestrator (Cleaned)
 """
 
 import getpass
+import os
+import tempfile
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QAction
@@ -439,11 +441,34 @@ class MainWindow(QMainWindow, QtLoggerMixin):
         self.clear_cron_selection()
 
     def write_crontab(self):
-        """⭐ Placeholder for temp-file → validate → save logic."""
-        self.logger.info(
-            "write_crontab() called — implement cron saving workflow here."
+        """
+        Generate a temporary crontab for inspection.
+        """
+        lines = []
+        for entry in self.cron_rows:
+            if entry.comment:
+                lines.append(f"# {entry.comment}")
+            lines.append(entry.crontab_line())
+            # Spacer between entries
+            lines.append("")
+        contents = "\n".join(lines) + "\n"
+        fd, path = tempfile.mkstemp(
+            prefix="taskscheduler_",
+            suffix=".cron",
         )
 
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                handle.write(contents)
+
+            self.logger.info(f"Temporary crontab written to {path}")
+
+        except Exception:
+            os.close(fd)
+            raise
+        self.logger.info(f"Temporary crontab written to {path}")
+        print(f"Temporary crontab written to: {path}")
+    
     # ============================================================
     # Systemd CRUD (stubs)
     # ============================================================

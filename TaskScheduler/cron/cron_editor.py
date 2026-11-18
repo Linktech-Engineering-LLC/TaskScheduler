@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-28
- Modified: 2026-11-17
+ Modified: 2026-11-18
  File: taskscheduler/cron_editor.py
  Version: 1.0.0
  Description: Description of this module
@@ -262,20 +262,6 @@ class CronJobEditor(QDialog):
 
         return ",".join(values)
 
-    def _validate_cron_field(self, name, buttons):
-        """
-        Ensures at least one value is selected.
-        Returns True if valid, False otherwise.
-        """
-        if any(btn.isChecked() for btn in buttons):
-            return True
-
-        QMessageBox.warning(
-            self, "Validation Error", f"At least one {name} value must be selected."
-        )
-
-        return False
-
     def accept(self):
 
         if not self.command_edit.text().strip():
@@ -288,34 +274,48 @@ class CronJobEditor(QDialog):
             self.comment_edit.setFocus()
             return
 
-        fields = [
-            ("month", self.months_group.buttons),
-            ("day of month", self.days_group.buttons),
-            ("day of week", self.weekdays_group.buttons),
-            ("hour", self.hours_group.buttons),
-            ("minute", self.minutes_group.minute_grid.buttons),
-        ]
+        self.entry = self.get_cron_entry()
 
-        for name, buttons in fields:
-            if not self._validate_cron_field(name, buttons):
-                return
+        if not self.validate_entry(self.entry):
+            return
 
         super().accept()
 
     def get_cron_entry(self) -> CronEntry:
+        reboot = self.boot_box.isChecked()
+        daily = self.daily_box.isChecked()
+
         return CronEntry(
-            minute=self._selected_values(self.minutes_group.minute_grid.buttons),
-            hour=self._selected_values(self.hours_group.buttons),
-            dom=self._selected_values(self.days_group.buttons),
-            month=self._selected_values(self.months_group.buttons),
-            dow=self._selected_values(self.weekdays_group.buttons),
+            minute="@reboot"
+            if reboot
+            else self._selected_values(self.minutes_group.minute_grid.buttons),
+
+            hour=""
+            if reboot
+            else self._selected_values(self.hours_group.buttons),
+
+            dom=""
+            if reboot
+            else "*" if daily
+            else self._selected_values(self.days_group.buttons),
+
+            month=""
+            if reboot
+            else "*" if daily
+            else self._selected_values(self.months_group.buttons),
+
+            dow=""
+            if reboot
+            else "*" if daily
+            else self._selected_values(self.weekdays_group.buttons),
+
             command=self.command_edit.text().strip(),
             comment=self.comment_edit.text().strip(),
             enabled=self.enable_box.isChecked(),
-            daily=self.daily_box.isChecked(),
-            boot=self.boot_box.isChecked(),
+            daily=daily,
+            boot=reboot,
         )
-
+    
     def _daily_changed(self, checked):
         if checked:
             self.boot_box.setChecked(False)
@@ -338,3 +338,15 @@ class CronJobEditor(QDialog):
         # Boot mode
         self.hours_group.setEnabled(not boot)
         self.minutes_group.setEnabled(not boot)
+
+    def validate_entry(self, entry: CronEntry) -> bool:
+        valid, message = entry.validate()
+
+        if not valid:
+            QMessageBox.warning(
+                self,
+                "Validation Error",
+                message,
+            )
+
+        return valid

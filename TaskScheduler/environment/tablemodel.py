@@ -6,13 +6,14 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-11-17
+ Modified: 2026-11-18
  File: taskscheduler/environment/tablemodel.py
  Version: 1.0.0
  Description: Description of this module
 """
 
 from __future__ import annotations
+from typing import ClassVar
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtGui import QColor
@@ -27,7 +28,7 @@ class EnvironmentTableModel(QAbstractTableModel):
     COLUMN_SOURCE = 3
     COLUMN_COMMENT = 4
 
-    HEADERS = [
+    HEADERS: ClassVar[list[str]] = [
         "Variable",
         "Value",
         "Status",
@@ -43,10 +44,12 @@ class EnvironmentTableModel(QAbstractTableModel):
     # Required Qt model methods
     # ------------------------------------------------------------
 
-    def rowCount(self, parent=QModelIndex()) -> int:
+    def rowCount(self, parent=None) -> int:
+        parent = parent or QModelIndex()
         return len(self.entries)
 
-    def columnCount(self, parent=QModelIndex()) -> int:
+    def columnCount(self, parent=None) -> int:
+        parent = parent or QModelIndex()
         return len(self.HEADERS)
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):

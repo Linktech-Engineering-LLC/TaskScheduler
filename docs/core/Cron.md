@@ -42,6 +42,45 @@ Each cron entry is represented as a `CronEntry`:
 - **enabled:** boolean toggle.
 - **source:** origin (user file, imported, generated).
 
+A `CronEntry` may*represent either a*traditional five*field cron schedule or a special s*hedule*such as `@reboot`.*Editor modes*(Custom* Daily, and Boot) are*normalized into a deterministic `C*onEntry`*representation prior to validation*and export.
+
+The boolean fields `enabled`, `daily`, and `boot` influence schedule generation and export behavior.
+
+- `enabled=False` results in a commented cron entry.
+- `daily=True` normalizes day, month, and weekday fields to `*`.
+- `boot=True` generates an `@reboot` schedule and suppresses standard cron time fields.
+
+CronEntry is the authoritative representation of a schedule.
+
+All editor modes (Custom, Daily, and Boot) are normalized into a
+CronEntry instance prior to validation.
+
+Validation is performed against the normalized CronEntry rather
+than the state of individual user-interface controls.
+
+### Disabled Entry Normalization
+
+Disabled schedules are represented internally using the `enabled`
+boolean property and are not stored with embedded comment markers.
+
+During import, TaskScheduler recognizes both standard cron disabled
+entries and KDE/KCron disabled entries. Any leading disable markers
+are removed before populating the schedule fields.
+
+A disabled schedule is identified by locating the first valid schedule
+character:
+
+- `@` for special schedules such as `@reboot`,
+- `*` for wildcard schedules,
+- `0-9` for numeric schedules.
+
+Examples:
+
+```cron
+# 0 22 * * * /path/script
+#\0 22 * * * /path/script
+```
+
 ## 4. Schedule Parsing
 Schedules are parsed from standard cron syntax into structured fields. Parsing enforces:
 - numeric bounds,
@@ -84,6 +123,19 @@ Exports are deterministic:
 - environment injection is explicit,
 - output format follows POSIX cron conventions.
 
+TaskScheduler recognizes both standard commented cron entries (`#`)
+and KDE/KCron disabled entries (`#\`) during import.
+
+Internally, disabled state is normalized to the `enabled` property
+of `CronEntry`.
+
+Exports always use the standard commented cron format:
+
+# 0 22 * * * /path/to/script
+
+This behavior provides deterministic output while maintaining
+compatibility with imported KCron schedules.
+
 ## 10. Orchestration
 Cron orchestration coordinates:
 - loading user cron definitions,
@@ -92,11 +144,18 @@ Cron orchestration coordinates:
 - exporting to target locations on operator request.
 
 ## 11. Future Extensions
-Planned extensions include:
+
+Planned e*tensions*include:
+
 - cron safety warnings,
-- “next run” simulation,
-- diffing against system crontab,
-- shell‑specific helpers for complex schedules.
+* "next run" simulation,
+- diffing *gainst system*crontab,
+- shell-specific helpers *or complex*schedules,
+- native support for cr*n step expressions (`*/N`, `M/N`*,
+- support for range expressions*(`A-B`),
+- support for range-step*expressions (`A-B/N`),
+- preservat*on and*editing of imported advanced cron *xpressions.
+
 
 ## 12. Deterministic Guarantees
 Given the same:

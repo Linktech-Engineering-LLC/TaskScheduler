@@ -6,7 +6,7 @@
  Author: Leon McClatchey
  Company: Linktech Engineering LLC
  Created: 2026-09-30
- Modified: 2026-11-17
+ Modified: 2026-11-18
  File: taskscheduler/environment/model.py
  Version: 1.0.0
  Description: Description of this module

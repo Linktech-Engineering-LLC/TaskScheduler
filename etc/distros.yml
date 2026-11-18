@@ -65,9 +65,9 @@ linux:
       excluded_users:
         - nobody
 
-    supports_systemd: true
+    supports_systemd: false
     supports_cron: true
-    supports_env: true
+    supports_env: false
 
     cron_tab_path: /var/spool/cron/tabs/{user}
     cron_log_path: /var/log/messages
